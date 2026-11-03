@@ -1,0 +1,21 @@
+{
+  "name": "trazabilidad-metodos-apk",
+  "version": "1.0.0",
+  "description": "Sistema de Trazabilidad en Tiempo Real y Cálculo de Throughput para Laboratorio de Ingeniería de Métodos (13 Operarios - Cajitas Estándar y Plus)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ingenieria-de-metodos",
+    "trazabilidad",
+    "throughput",
+    "toc",
+    "produccion",
+    "apk",
+    "pwa"
+  ],
+  "author": "Laboratorio de Ingeniería de Métodos",
+  "license": "MIT"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Lab Métodos - Trazabilidad y Truput",
+  "short_name": "Trazabilidad",
+  "description": "Aplicación móvil para trazabilidad de producción (13 operarios, 5 áreas) y cálculo de Throughput en unidades físicas.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

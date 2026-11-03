@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b1120" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Trazabilidad, 4 Productos y Takt Time - Lab. Ingeniería de Métodos</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <!-- Contenedor de Notificaciones Táctiles (Toasts) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- MODAL EMERGENTE DE NOTIFICACIÓN AUTOMÁTICA DE PEDIDO DEL DOCENTE EN CADA ÁREA -->
+  <div id="orderAlertModal" class="order-alert-modal">
+    <div class="order-alert-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+        <span class="badge-pill" style="background:#f59e0b; color:#000; font-size:12px; font-weight:900;">
+          📢 NUEVO PEDIDO DEL DOCENTE
+        </span>
+        <span style="font-size:12px; color:#cbd5e1;" id="modalOrderCode">PED-DOC-01</span>
+      </div>
+      <div style="font-size:19px; font-weight:900; color:#fbbf24; margin-bottom:8px;" id="modalAreaTitle">
+        🔔 ORDEN DE REPOSICIÓN PARA TU ÁREA
+      </div>
+      <div style="background:#0b1120; border:2px solid #38bdf8; border-radius:12px; padding:12px; margin-bottom:10px;">
+        <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:800;">
+          LO QUE DEBES PRODUCIR / REPONER EN TU ESTACIÓN AHORA:
+        </div>
+        <div style="font-size:17px; font-weight:900; color:#fff; margin-top:4px;" id="modalAreaMainInstruction">
+          Instrucción principal...
+        </div>
+        <div style="font-size:12px; color:#38bdf8; margin-top:4px;" id="modalAreaSubDetail">
+          Detalle de reposición...
+        </div>
+      </div>
+
+      <!-- Resumen de lo que se notificó a las 4 áreas -->
+      <div style="background:#131c2e; border:1px solid #26354d; border-radius:10px; padding:10px; font-size:11px; color:#cbd5e1; margin-bottom:14px;" id="modalAllAreasSummary">
+      </div>
+
+      <button class="giant-btn btn-amber" style="min-height:64px; font-size:17px; margin-bottom:0;" onclick="cerrarModalAlertaPedido()">
+        ✅ ENTENDIDO • INICIAR REPOSICIÓN EN MI ÁREA
+      </button>
+    </div>
+  </div>
+
+  <!-- Header Superior Permanente con Throughput Físico en Vivo -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">📦</div>
+        <div>
+          <div class="brand-title">ING. DE MÉTODOS • 4 ESTACIONES & 4 PRODUCTOS</div>
+          <div class="brand-subtitle" id="headerSessionSub">Enrollado (4) • Pegado (4) • Cortado (1) • Ensamblado (4)</div>
+        </div>
+      </div>
+      <div class="live-badges">
+        <button id="btnInstallPwa" class="btn-secondary" style="display:none; background:#2563eb; border-color:#60a5fa;">
+          📲 Instalar App
+        </button>
+        <button class="btn-secondary" style="background:#059669; border-color:#34d399; padding:5px 9px; font-size:11px; font-weight:800;" onclick="switchTab('config')" title="Ver Link Multi-Red para conectar los 13 celulares en diferentes redes">
+          🌐 Link 13 Celulares
+        </button>
+        <div class="badge-pill" title="Celulares sincronizados en tiempo real">
+          <span class="dot-live" id="connDot"></span>
+          <span id="connCountText">1 Disp.</span>
+        </div>
+        <div class="badge-pill" id="clockBadge">⏱️ 00:00</div>
+      </div>
+    </div>
+
+    <!-- Barra de KPIs de Throughput en Unidades Físicas y los 4 Productos -->
+    <div class="header-kpi-strip">
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Truput Total</div>
+        <div class="mini-kpi-val highlight-emerald" id="kpiThroughputHora">0.00 u/h</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Tasa / Min</div>
+        <div class="mini-kpi-val highlight-blue" id="kpiThroughputMin">0.000 u/m</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Cajita Est / Plus</div>
+        <div class="mini-kpi-val highlight-amber" id="kpiPtCajitas">0 / 0</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Nuevo Est / Plus</div>
+        <div class="mini-kpi-val highlight-pink" id="kpiPtNuevos">0 / 0</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- ==================================================================== -->
+    <!-- PESTAÑA 1: TERMINAL MÓVIL DEL OPERARIO (OP 1 AL 13 - 4 ESTACIONES)   -->
+    <!-- ==================================================================== -->
+    <section id="tab-operario" class="tab-view active">
+
+      <!-- Selector del Operario (1 al 13: Enrollado 1-4, Pegado 5-8, Cortado 9, Ensamblado 10-13) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">👷 Selecciona tu Puesto (13 Operarios en 4 Áreas: 4-4-1-4)</div>
+            <div class="card-subtitle">Enrollado (Op 1-4) • Pegado (Op 5-8) • Cortado (Op 9) • Ensamblado (Op 10-13)</div>
+          </div>
+          <button class="btn-secondary" onclick="toggleSelectorOperarios()" id="btnToggleOps">Ocultar Selector ▴</button>
+        </div>
+
+        <div id="operatorSelectorWrap" class="operator-selector-bar"></div>
+      </div>
+
+      <!-- BANNER KANBAN DE NOTIFICACIÓN DE REPOSICIÓN DEL DOCENTE EN TU ÁREA -->
+      <div id="stationReplenishBanner"></div>
+
+      <!-- Panel de Estación Activa -->
+      <div class="card" id="activeStationCard">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="activeOpTitle">Cargando operario...</div>
+            <div class="card-subtitle" id="activeOpRole">Estación de trabajo</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:var(--text-muted);">MI CICLO PROM.</div>
+            <div style="font-size:16px; font-weight:900; color:#34d399;" id="activeOpCycle">-- s</div>
+          </div>
+        </div>
+
+        <!-- Banner De dónde viene -> Mi Estación -> A dónde va -->
+        <div class="station-flow-banner">
+          <div class="flow-step">
+            <span class="flow-step-label">📥 AMORTIGUADOR ENTRADA</span>
+            <div class="flow-step-val" id="flowOrigenText">Papel Carta</div>
+          </div>
+          <div class="flow-arrow">➜</div>
+          <div class="flow-step current">
+            <span class="flow-step-label">⚙️ MI ESTACIÓN</span>
+            <div class="flow-step-val" id="flowActualText">1. Enrollado</div>
+          </div>
+          <div class="flow-arrow">➜</div>
+          <div class="flow-step">
+            <span class="flow-step-label">📤 ALIMENTA / ENTREGA</span>
+            <div class="flow-step-val" id="flowDestinoText">2. Área Pegado</div>
+          </div>
+        </div>
+
+        <!-- Controles Gigantes Dinámicos según la Estación (1 a 4) -->
+        <div id="stationActionArea"></div>
+
+        <!-- Pie de estación: Mis Estadísticas + Botón de Deshacer y Merma/Defecto -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-color); flex-wrap:wrap;">
+          <div style="font-size:12px;">
+            Mis piezas hoy: <strong id="activeOpCount" style="color:#60a5fa; font-size:15px;">0</strong>
+            &nbsp;|&nbsp; Último ciclo: <strong id="activeOpLastCycle">-- s</strong>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-secondary" style="border-color:#f59e0b; color:#fbbf24;" onclick="sendAction({ type: 'DESHACER' })" title="Revierte el último botón presionado por error">
+              ↩️ Deshacer Último Toque
+            </button>
+            <button class="btn-secondary" style="border-color:#f43f5e; color:#fda4af;" onclick="registrarMermaActiva()">
+              ⚠️ Reportar Pieza Defectuosa / Merma
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monitor en Vivo de los Amortiguadores de las 4 Estaciones (TOC / DBR) -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title">🛡️ Estado en Vivo de los Amortiguadores en las 4 Estaciones (TOC / DBR)</div>
+            <div class="card-subtitle">Enrollado (4 op) ➜ Pegado: 600 tubos (4 op) ➜ Cortado: 26 unid. (1 op) ➜ Ensamblado: 6 unid. (4 op)</div>
+          </div>
+          <span class="badge-pill" id="bottleneckMiniBadge">Analizando amortiguadores...</span>
+        </div>
+        <div id="miniWipSummary" class="eng-grid" style="margin-bottom:0;"></div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- PESTAÑA 2: PANEL DEL DOCENTE (PEDIDOS DE LOS 4 PRODUCTOS)            -->
+    <!-- ==================================================================== -->
+    <section id="tab-docente" class="tab-view">
+      <div class="card" style="border: 2px solid #f59e0b;">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title" style="color:#fbbf24; font-size:17px;">👨‍🏫 Panel del Docente — Solicitar Pedido de los 4 Productos a la Línea</div>
+            <div class="card-subtitle">
+              Selecciona cuántas unidades pedir de cualquiera de los <strong>4 productos</strong> (<strong>Cajita Estándar, Cajita Plus, Nuevo Producto Estándar y Nuevo Producto Plus</strong>). El sistema envía automáticamente la notificación a las <strong>4 estaciones</strong>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de cantidad para los 4 Productos -->
+        <div class="passport-grid" style="margin-bottom:12px;">
+          <!-- Producto 1: Cajita Estándar -->
+          <div class="passport-block" style="border-color:#10b981;">
+            <div class="passport-block-title" style="color:#34d399;">📦 1. CAJITA ESTÁNDAR</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputEst', -1)">➖</button>
+              <input type="number" id="docInputEst" class="input-field" value="3" min="0" max="100" oninput="actualizarVistaPreviaExplosion()" style="text-align:center; font-size:22px; font-weight:900; color:#34d399;" />
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputEst', 1)">➕</button>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:6px;">
+              Termina en Área 4 (Ensamblado). 2 P.Largas, 2 P.Cortas, 1 Base, 1 Tapa Est., 3 Agarradores, 4 Patitas.
+            </div>
+          </div>
+
+          <!-- Producto 2: Cajita Plus -->
+          <div class="passport-block" style="border-color:#ec4899;">
+            <div class="passport-block-title" style="color:#f472b6;">✨ 2. CAJITA PLUS</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputPlus', -1)">➖</button>
+              <input type="number" id="docInputPlus" class="input-field" value="3" min="0" max="100" oninput="actualizarVistaPreviaExplosion()" style="text-align:center; font-size:22px; font-weight:900; color:#f472b6;" />
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputPlus', 1)">➕</button>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:6px;">
+              Termina en Área 4 (Ensamblado). 2 P.Largas, 2 P.Cortas, 1 Base, 1 Tapa Plus.
+            </div>
+          </div>
+
+          <!-- Producto 3: Nuevo Producto Estándar -->
+          <div class="passport-block" style="border-color:#3b82f6;">
+            <div class="passport-block-title" style="color:#60a5fa;">🔷 3. NUEVO PRODUCTO ESTÁNDAR</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputNuevoEst', -1)">➖</button>
+              <input type="number" id="docInputNuevoEst" class="input-field" value="3" min="0" max="100" oninput="actualizarVistaPreviaExplosion()" style="text-align:center; font-size:22px; font-weight:900; color:#60a5fa;" />
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputNuevoEst', 1)">➕</button>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:6px;">
+              Requiere: <strong>2 Placas 14 (13.5cm), 1 Placa 10 (13.5cm), 2 Placas 3 (23.7/9cm) y 2 Mermas de Tapa Estándar</strong>.
+            </div>
+          </div>
+
+          <!-- Producto 4: Nuevo Producto Plus -->
+          <div class="passport-block" style="border-color:#a855f7;">
+            <div class="passport-block-title" style="color:#c084fc;">💎 4. NUEVO PRODUCTO PLUS</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputNuevoPlus', -1)">➖</button>
+              <input type="number" id="docInputNuevoPlus" class="input-field" value="3" min="0" max="100" oninput="actualizarVistaPreviaExplosion()" style="text-align:center; font-size:22px; font-weight:900; color:#c084fc;" />
+              <button class="btn-secondary" style="font-size:18px; padding:8px 16px;" onclick="ajustarInputDocente('docInputNuevoPlus', 1)">➕</button>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:6px;">
+              Requiere: <strong>2 Placas 14 (13.5cm), 1 Placa 10 (13.5cm), 2 Placas 14 (5cm), 1 Placa 10 (5cm), 2 Placas 3 (23.7/9cm), 1 Placa 3 c/Fideo (5cm), 2 Placas 13 Tapas (13.5cm)</strong>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones rápidos de pedidos frecuentes del Docente -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn-secondary" onclick="setPedidoRapidoDocente(3, 3, 0, 0)">⚡ 3 Cajita Est + 3 Cajita Plus</button>
+          <button class="btn-secondary" onclick="setPedidoRapidoDocente(2, 2, 2, 2)">⚡ 2 de cada uno de los 4 Productos (8 unid.)</button>
+          <button class="btn-secondary" onclick="setPedidoRapidoDocente(3, 3, 3, 3)">⚡ 3 de cada uno de los 4 Productos (12 unid.)</button>
+          <button class="btn-secondary" onclick="setPedidoRapidoDocente(0, 0, 3, 3)">🔷💎 Solo Nuevos: 3 Nuevo Est + 3 Nuevo Plus</button>
+        </div>
+
+        <!-- Vista Previa Automática de lo que se ordenará reponer a cada estación -->
+        <div style="background:#0b1120; border:1px solid #334155; border-radius:12px; padding:12px; margin-bottom:14px;">
+          <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px;">
+            🔍 VISTA PREVIA DE LAS NOTIFICACIONES DE REPOSICIÓN QUE RECIBIRÁN LAS 4 ÁREAS:
+          </div>
+          <div id="docentePreviewExplosion" class="passport-grid"></div>
+        </div>
+
+        <button class="giant-btn btn-amber" onclick="lanzarPedidoDocente()">
+          <span>📢 LANZAR PEDIDO DEL DOCENTE Y NOTIFICAR A LAS 4 ÁREAS</span>
+          <span class="giant-btn-sub">Envía alerta sonora y orden de reposición inmediata a los 13 celulares</span>
+        </button>
+      </div>
+
+      <!-- Seguimiento en Vivo de los Pedidos del Docente -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title">📋 Seguimiento en Vivo de Pedidos del Docente y Avance de Reposición</div>
+            <div class="card-subtitle">Monitorea cuánto ha repuesto cada una de las 4 estaciones para cumplir cada pedido</div>
+          </div>
+          <button class="btn-secondary" style="border-color:#64748b; color:#cbd5e1;" onclick="sendAction({ type: 'LIMPIAR_PEDIDOS_DOCENTE' })">
+            🧹 Limpiar Pedidos Completados
+          </button>
+        </div>
+        <div id="docenteOrdersList"></div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- PESTAÑA 3: TRAZABILIDAD DE PRODUCTOS (DE DÓNDE VIENE Y A DÓNDE VA)   -->
+    <!-- ==================================================================== -->
+    <section id="tab-trazabilidad" class="tab-view">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title">🔍 Pasaporte de Trazabilidad de los 4 Productos (Origen ➜ Destino)</div>
+            <div class="card-subtitle">
+              Identifica qué unidades salieron del Amortiguador Inicial y cuáles de producción nueva, a qué Pedido del Docente pertenecen y qué operarios participaron.
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <a href="/api/export-excel" class="btn-secondary" style="text-decoration:none; background:#059669; border-color:#34d399;">
+              📊 Descargar Libro Excel con Formato (5 Hojas .XLSX)
+            </a>
+            <button class="btn-secondary" onclick="ejecutarSimulacionDemo()">
+              ⚡ Simular 1 Lote Completo (Prueba 4 Productos)
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros de los 4 Productos -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <button class="btn-secondary" onclick="setFiltroCajas('TODAS')" id="fltTodas">Todos los Productos</button>
+          <button class="btn-secondary" onclick="setFiltroCajas('ESTANDAR')" id="fltEstandar">📦 Cajita Estándar</button>
+          <button class="btn-secondary" onclick="setFiltroCajas('PLUS')" id="fltPlus">✨ Cajita Plus</button>
+          <button class="btn-secondary" onclick="setFiltroCajas('NUEVO_ESTANDAR')" id="fltNuevoEst">🔷 Nuevo Prod. Estándar</button>
+          <button class="btn-secondary" onclick="setFiltroCajas('NUEVO_PLUS')" id="fltNuevoPlus">💎 Nuevo Prod. Plus</button>
+        </div>
+
+        <div id="traceabilityBoxesList"></div>
+      </div>
+
+      <!-- Bitácora en Vivo de Movimientos entre Estaciones -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📜 Flujo en Vivo de Movimientos y Pedidos</div>
+            <div class="card-subtitle">Cada transferencia registrada por los 13 celulares en las 4 áreas en tiempo real</div>
+          </div>
+          <a href="/api/export-excel" class="btn-secondary" style="text-decoration:none;">
+            📥 Exportar Excel (.XLSX)
+          </a>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Operario</th>
+                <th>Estación</th>
+                <th>Acción / Lote</th>
+                <th>De dónde viene (Origen)</th>
+                <th>A dónde va (Destino)</th>
+                <th>T. Ciclo</th>
+              </tr>
+            </thead>
+            <tbody id="liveEventsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- PESTAÑA 4: THROUGHPUT FÍSICO, BALANCEO DE LÍNEA (TAKT TIME) Y RESUMEN-->
+    <!-- ==================================================================== -->
+    <section id="tab-throughput" class="tab-view">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title">📊 Cálculo de Throughput (Truput en Unidades Físicas de los 4 Productos)</div>
+            <div class="card-subtitle">
+              Fórmula TOC / Ingeniería de Métodos: <strong>TH = Unidades Físicas de Producto Terminado / Tiempo Efectivo</strong>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-secondary" onclick="controlReloj('PAUSAR')" id="btnPausarReloj">⏸️ Pausar Reloj</button>
+            <button class="btn-secondary" onclick="controlReloj('REANUDAR')" id="btnReanudarReloj" style="display:none; background:#059669;">▶️ Reanudar</button>
+            <button class="btn-secondary" onclick="controlReloj('REINICIAR_RELOJ')">🔄 Reiniciar Tiempo</button>
+          </div>
+        </div>
+
+        <!-- Panel Principal de Throughput en Unidades Físicas -->
+        <div class="eng-grid" id="throughputMetricsGrid"></div>
+
+        <!-- ================================================================ -->
+        <!-- MEJORA #1: GRÁFICO DE BALANCEO DE LÍNEA Y TAKT TIME EN VIVO      -->
+        <!-- ================================================================ -->
+        <div class="card" style="background:#0f172a; border:1px solid #38bdf8; margin-top:10px;">
+          <div class="card-header" style="flex-wrap:wrap; gap:10px;">
+            <div>
+              <div class="card-title" style="color:#38bdf8;">⚖️ Gráfico de Balanceo de Línea y Takt Time en Vivo (4 Estaciones: 4-4-1-4)</div>
+              <div class="card-subtitle">
+                Compara el <strong>Tiempo de Ciclo Efectivo por Unidad de cada Estación</strong> contra el <strong>Takt Time</strong> del cliente/docente para detectar matemáticamente el cuello de botella.
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#131c2e; padding:8px 10px; border-radius:10px; border:1px solid #334155;">
+              <div style="font-size:11px; color:#cbd5e1;">
+                Demanda Meta (unid):
+                <input type="number" id="inputTaktDemanda" value="6" min="1" max="500" style="width:58px; background:#0b1120; color:#38bdf8; border:1px solid #475569; border-radius:6px; padding:4px 6px; font-weight:800;" onchange="actualizarConfigTakt()" />
+              </div>
+              <div style="font-size:11px; color:#cbd5e1;">
+                Tiempo Disp. (min):
+                <input type="number" id="inputTaktMinutos" value="15" min="1" max="480" style="width:58px; background:#0b1120; color:#fbbf24; border:1px solid #475569; border-radius:6px; padding:4px 6px; font-weight:800;" onchange="actualizarConfigTakt()" />
+              </div>
+            </div>
+          </div>
+
+          <div id="lineBalancingChartContainer"></div>
+        </div>
+
+        <!-- CUADRO RESUMEN CONSOLIDADO DE TODO LO PRODUCIDO -->
+        <div class="card" style="background:#0f172a; border-color:#10b981; margin-top:10px;">
+          <div class="card-header" style="flex-wrap:wrap;">
+            <div>
+              <div class="card-title" style="color:#34d399;">📋 CUADRO RESUMEN GENERAL DE TODO LO PRODUCIDO (4 ESTACIONES Y 4 PRODUCTOS)</div>
+              <div class="card-subtitle">Balance completo desde Tubos ➜ Placas Pegadas ➜ Piezas Cortadas ➜ Los 4 Productos Terminados en Ensamblado</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <a href="/api/export-excel" class="btn-secondary" style="text-decoration:none; background:#059669; border-color:#34d399;">
+                📊 Descargar Libro Excel con Formato (5 Hojas .XLSX)
+              </a>
+              <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+            </div>
+          </div>
+
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Área / Producto / Sub-ensamble</th>
+                  <th>Amortiguador Inicial</th>
+                  <th>Producido Nuevo (Corrida)</th>
+                  <th>Consumido / Transformado</th>
+                  <th>Stock Actual en Cola (WIP)</th>
+                  <th>Producto Terminado / Salida</th>
+                  <th>Tasa Fís. (Unid/min)</th>
+                </tr>
+              </thead>
+              <tbody id="masterSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Diagnóstico de Amortiguadores y Tasas por Área -->
+        <div class="card" style="background:#0f172a; margin-top:10px; margin-bottom:0;">
+          <div class="card-header" style="flex-wrap:wrap;">
+            <div class="card-title">🛡️ Gestión de Amortiguadores (Buffers TOC) y Flujo en las 4 Estaciones</div>
+            <span class="badge-pill" id="tocAlertBanner" style="color:#fbbf24;">Restricción: --</span>
+          </div>
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Estación de Trabajo</th>
+                  <th>Operarios</th>
+                  <th>Amortiguador Inicial (Meta)</th>
+                  <th>Nivel Actual en Amortiguador</th>
+                  <th>Estado TOC (Semáforo)</th>
+                  <th>Producción Nueva Acum.</th>
+                  <th>Tasa (Unid/min)</th>
+                </tr>
+              </thead>
+              <tbody id="stationsMetricsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventario Detallado de Piezas Cortadas y Receta BOM -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🧩 Matriz BOM, Amortiguador de Cortado y Ensamblado (4 Productos)</div>
+            <div class="card-subtitle">Control en vivo de placas en el amortiguador de Cortado y piezas cortadas en el amortiguador de Ensamblado</div>
+          </div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sub-ensamble (Área Pegado)</th>
+                <th>Tubos Usados</th>
+                <th>Placas en Amortiguador Corte</th>
+                <th>Pieza que sale en Corte</th>
+                <th>Rend. x Corte</th>
+                <th>Stock en Amortiguador Ensamblado</th>
+                <th>Req. por Producto</th>
+              </tr>
+            </thead>
+            <tbody id="bomStatusTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rendimiento Individual de los 13 Operarios -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">⏱️ Estudio de Tiempos y Productividad de los 13 Operarios (Distribución 4-4-1-4)</div>
+            <div class="card-subtitle">Enrollado (Op 1-4), Pegado (Op 5-8), Cortado (Op 9), Ensamblado (Op 10-13)</div>
+          </div>
+        </div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Puesto</th>
+                <th>Nombre del Compañero</th>
+                <th>Área de Trabajo</th>
+                <th>Unidades Registradas</th>
+                <th>T. Ciclo Promedio</th>
+                <th>Último Ciclo</th>
+                <th>Mermas</th>
+              </tr>
+            </thead>
+            <tbody id="operatorsStatsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- PESTAÑA 5: AMORTIGUADORES / CONECTAR 13 CELULARES / APK              -->
+    <!-- ==================================================================== -->
+    <section id="tab-config" class="tab-view">
+
+      <!-- Configuración de Amortiguadores de las 4 Estaciones -->
+      <div class="card" style="border-color:#3b82f6;">
+        <div class="card-header" style="flex-wrap:wrap;">
+          <div>
+            <div class="card-title">🛡️ Configuración de Amortiguadores Iniciales en las 4 Estaciones (TOC / DBR)</div>
+            <div class="card-subtitle">
+              Estaciones activas: <strong>1. Enrollado (4 op)</strong> | <strong>2. Pegado = 600 tubos (4 op)</strong> | <strong>3. Cortado = 26 cajas (1 op)</strong> | <strong>4. Ensamblado = 6 cajas (4 op)</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="passport-grid">
+          <div class="passport-block">
+            <div class="passport-block-title">1. ENROLLADO (HOJAS DE PAPEL CARTA - 4 OP.)</div>
+            <label style="font-size:11px; color:var(--text-muted);">Hojas de papel reciclado al inicio:</label>
+            <input type="number" id="bufEnrolladoHojas" class="input-field" value="1200" min="0" style="margin-top:4px;" />
+          </div>
+
+          <div class="passport-block" style="border-color:#38bdf8;">
+            <div class="passport-block-title">2. AMORTIGUADOR DE PEGADO (TUBOS - 4 OP.)</div>
+            <label style="font-size:11px; color:var(--text-muted);">Tubos enrollados iniciales (ej. 600):</label>
+            <input type="number" id="bufPegadoTubos" class="input-field" value="600" min="0" style="margin-top:4px;" />
+          </div>
+
+          <div class="passport-block" style="border-color:#fbbf24;">
+            <div class="passport-block-title">3. AMORTIGUADOR DE CORTADO (EN PLACAS - 1 OP.)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px;">
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Cajita Estándar (13):</label>
+                <input type="number" id="bufCortadoEst" class="input-field" value="13" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Cajita Plus (13):</label>
+                <input type="number" id="bufCortadoPlus" class="input-field" value="13" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Nuevo Prod. Estándar:</label>
+                <input type="number" id="bufCortadoNuevoEst" class="input-field" value="0" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Nuevo Prod. Plus:</label>
+                <input type="number" id="bufCortadoNuevoPlus" class="input-field" value="0" min="0" />
+              </div>
+            </div>
+          </div>
+
+          <div class="passport-block" style="border-color:#34d399;">
+            <div class="passport-block-title">4. AMORTIGUADOR DE ENSAMBLADO (PIEZAS CORTADAS - 4 OP.)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px;">
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Cajita Estándar (3):</label>
+                <input type="number" id="bufEnsambladoEst" class="input-field" value="3" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Cajita Plus (3):</label>
+                <input type="number" id="bufEnsambladoPlus" class="input-field" value="3" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Nuevo Prod. Estándar:</label>
+                <input type="number" id="bufEnsambladoNuevoEst" class="input-field" value="0" min="0" />
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted);">Nuevo Prod. Plus:</label>
+                <input type="number" id="bufEnsambladoNuevoPlus" class="input-field" value="0" min="0" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="btn-secondary" style="background:#059669; border-color:#34d399; padding:10px 14px;" onclick="aplicarAmortiguadoresYReiniciar()">
+            🛡️ Guardar y Reiniciar Corrida CON estos Amortiguadores
+          </button>
+          <button class="btn-secondary" style="background:#2563eb; border-color:#60a5fa; padding:10px 14px;" onclick="restaurarAmortiguadoresPorDefecto()">
+            🔄 Restaurar Valores Oficiales (600 / 13+13 / 3+3)
+          </button>
+          <button class="btn-secondary" style="background:#e11d48; border-color:#fda4af; padding:10px 14px;" onclick="reiniciarSinAmortiguadores()">
+            🗑️ Reiniciar en CERO (Sin Amortiguadores)
+          </button>
+        </div>
+      </div>
+
+      <!-- CONEXIÓN MULTI-RED (INTERNET 4G/5G / DIFERENTES REDES) -->
+      <div class="card" style="border:2px solid #10b981; background:linear-gradient(180deg, rgba(16,185,129,0.12), rgba(15,23,42,0.95));">
+        <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+          <div>
+            <div class="card-title" style="color:#34d399; font-size:16px;">
+              🌐 CONEXIÓN MULTI-RED EN DIFERENTES REDES (4G / 5G / Entel / Tigo / Viva / Cualquier Wi-Fi)
+            </div>
+            <div class="card-subtitle">
+              Los <strong>13 operarios y el docente</strong> pueden conectarse simultáneamente desde sus propios <strong>datos móviles (4G/5G)</strong> o redes distintas sin necesidad de estar en el mismo Wi-Fi.
+            </div>
+          </div>
+          <span class="badge-pill" id="multiNetworkStatusBadge" style="background:#059669; color:#fff; font-weight:900;">
+            🌐 TÚNEL MULTI-RED ACTIVO
+          </span>
+        </div>
+
+        <div class="passport-grid" style="align-items:center;">
+          <div class="passport-block" style="border-color:#10b981;">
+            <div class="passport-block-title" style="color:#34d399;">
+              🚀 OPCIÓN A (LISTA AL INSTANTE): LINK PÚBLICO DE INTERNET PARA LOS 13 CELULARES
+            </div>
+            <p style="font-size:12px; color:#cbd5e1; line-height:1.45; margin-bottom:8px;">
+              1. Envía este link por el grupo de WhatsApp del laboratorio o haz que escaneen el código QR.<br/>
+              2. Cada compañero puede usar sus <strong>propios datos móviles (Entel, Tigo, Viva)</strong> o cualquier Wi-Fi.<br/>
+              3. Todo lo que toquen se sincroniza en vivo en menos de 0.2 segundos:
+            </p>
+            <div id="publicTunnelUrlBox" style="background:#0b1120; border:2px solid #10b981; padding:12px; border-radius:10px; font-family:monospace; font-size:14px; font-weight:900; color:#34d399; word-break:break-all; margin-bottom:10px;">
+              Generando link público de Internet...
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-secondary" style="background:#2563eb; border-color:#60a5fa; padding:10px 14px; font-weight:800;" onclick="copiarLinkMultiRed()">
+                📋 Copiar Link Multi-Red
+              </button>
+              <button class="btn-secondary" style="background:#059669; border-color:#34d399; padding:10px 14px; font-weight:800;" onclick="compartirLinkWhatsApp()">
+                🟢 Enviar al Grupo de WhatsApp (13 Op.)
+              </button>
+              <button class="btn-secondary" style="background:#334155; border-color:#64748b; padding:10px 12px;" onclick="regenerarTunelMultiRed()">
+                🔄 Generar Nuevo Link
+              </button>
+            </div>
+          </div>
+
+          <div class="passport-block" style="border-color:#38bdf8; text-align:center;">
+            <div class="passport-block-title">📷 ESCANEAR QR CON DATOS MÓVILES (4G / 5G)</div>
+            <div id="publicQrWrap" style="background:#ffffff; padding:10px; border-radius:12px; display:inline-block; margin:6px auto;">
+              <img id="publicQrImg" src="" alt="QR Multi-Red" style="width:165px; height:165px; display:block;" />
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:4px;">
+              Los 13 compañeros escanean este QR con su cámara usando sus propios megas (no requiere misma red).
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; background:#0b1120; border:1px solid #26354d; border-radius:10px; padding:10px; font-size:12px; color:#cbd5e1;">
+          <strong>☁️ OPCIÓN B (SERVIDOR 100% EN LA NUBE 24/7 SIN PC ENCENDIDA - RENDER / RAILWAY):</strong>
+          El proyecto ya incluye <code style="color:#38bdf8;">render.yaml</code> y <code style="color:#38bdf8;">package.json</code>. Si subes esta carpeta a GitHub y la conectas gratis en <strong>Render.com</strong> o <strong>Railway.app</strong>, tendrás una URL permanente 24/7 aunque ninguna computadora esté encendida. Además, desde la <strong>APK Android</strong> puedes conectarte a cualquier URL pegándola abajo.
+        </div>
+      </div>
+
+      <!-- Cómo conectar en Red Local o desde APK Nativo -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📱 Opciones Adicionales: Red Local Wi-Fi / Hotspot y Configuración de APK Android</div>
+            <div class="card-subtitle">También puedes usar Wi-Fi local sin gastar megas o vincular la APK nativa a cualquier URL Multi-Red</div>
+          </div>
+        </div>
+
+        <div class="passport-grid">
+          <div class="passport-block" style="border-color:#3b82f6;">
+            <div class="passport-block-title">⚡ OPCIÓN LOCAL (SIN INTERNET): MISMO WI-FI O ZONA PORTÁTIL (HOTSPOT)</div>
+            <p style="line-height:1.45; margin-bottom:8px;">
+              Si en algún momento están bajo el mismo Wi-Fi o Hotspot, también pueden usar estas IPs locales:
+            </p>
+            <div id="wifiUrlsBox" style="background:#0b1120; padding:10px; border-radius:8px; font-family:monospace; font-size:14px; font-weight:800; color:#38bdf8; margin-bottom:8px;">
+              Cargando IP de red...
+            </div>
+            <p style="line-height:1.45;">
+              Toca el botón <strong>"📲 Instalar App"</strong> arriba a la derecha (o en el menú de Chrome ⋮ ➜ <em>"Instalar aplicación"</em>).
+            </p>
+          </div>
+
+          <div class="passport-block" style="border-color:#10b981;">
+            <div class="passport-block-title">📦 VINCULAR APK NATIVO ANDROID A CUALQUIER RED</div>
+            <p style="line-height:1.45; margin-bottom:8px;">
+              Si instalaste el archivo <strong>.APK</strong> en los celulares y están en diferentes redes (4G/5G), pega aquí el Link Multi-Red (<code style="color:#34d399;">https://...trycloudflare.com</code>) o URL Cloud:
+            </p>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+              <input type="text" id="inputCustomServerUrl" class="input-field" placeholder="Ej: https://xxxx.trycloudflare.com" />
+              <button class="btn-secondary" style="background:#2563eb; white-space:nowrap;" onclick="guardarServerRemoto()">Conectar URL</button>
+            </div>
+            <div style="margin-top:12px;">
+              <div class="passport-block-title">🎯 Destino Actual de las Unidades ("A dónde va")</div>
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <input type="text" id="inputLoteDestino" class="input-field" placeholder="Ej: Pedido Docente #01" />
+                <button class="btn-secondary" style="background:#059669;" onclick="guardarConfigSesion()">Guardar</button>
+              </div>
+              <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer; font-size:12px;">
+                <input type="checkbox" id="chkInventarioFlexible" onchange="guardarConfigSesion()" style="width:16px; height:16px;" />
+                <span>Permitir registro flexible aunque un compañero se atrase en tocar su pantalla</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personalizar Nombres de los 13 Compañeros -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">👥 Nombres de los 13 Compañeros (Enrollado 4, Pegado 4, Cortado 1, Ensamblado 4)</div>
+            <div class="card-subtitle">Personaliza los nombres reales de tus compañeros para que salgan en los reportes de trazabilidad y Excel</div>
+          </div>
+        </div>
+        <div id="operatorsConfigList" class="passport-grid"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Barra de Navegación Inferior Tipo App Nativa (5 Pestañas) -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('operario')" id="nav-operario">
+      <span class="nav-icon">👷</span>
+      <span>Mi Estación</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('docente')" id="nav-docente">
+      <span class="nav-icon">👨‍🏫</span>
+      <span>Docente</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('trazabilidad')" id="nav-trazabilidad">
+      <span class="nav-icon">🔍</span>
+      <span>Trazabilidad</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('throughput')" id="nav-throughput">
+      <span class="nav-icon">📊</span>
+      <span>Resumen/TH</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('config')" id="nav-config">
+      <span class="nav-icon">🛡️</span>
+      <span>Buffers/Red</span>
+    </button>
+  </nav>
+
+  <script src="/app.js"></script>
+</body>
+</html>
