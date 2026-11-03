@@ -10,6 +10,7 @@ let selectedOperatorId = localStorage.getItem('metodos_operario_id') || 'OP-01';
 let currentTab = 'operario';
 let filtroCajas = 'TODAS';
 let selectorCollapsed = false;
+let polivalentePickerOpen = false;
 let deferredInstallPrompt = null;
 let eventSource = null;
 let ultimaAlertaMostradaId = localStorage.getItem('metodos_ultima_alerta_id') || null;
@@ -238,9 +239,44 @@ function formatSecondsMMSS(totalSec) {
 // RENDERIZADO GENERAL DE LA INTERFAZ
 // ============================================================================
 
+function iniciarProduccionOficial() {
+  sendAction({ type: 'INICIAR_PRODUCCION' });
+}
+
+function renderProductionStartBanner() {
+  const bannerEl = document.getElementById('productionStartBanner');
+  if (!bannerEl || !appData) return;
+
+  const estado = appData.state?.session?.estado;
+  if (estado === 'LISTO_PARA_INICIAR') {
+    bannerEl.innerHTML = `
+      <div class="card" style="border:2px solid #10b981; background:linear-gradient(180deg, rgba(16,185,129,0.20), rgba(15,23,42,0.96)); margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <div>
+            <div style="font-size:16px; font-weight:900; color:#34d399;">
+              🚦 LÍNEA LISTA CON AMORTIGUADORES — ESPERANDO INICIO DE PRODUCCIÓN
+            </div>
+            <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">
+              El cronómetro está en <strong>00:00</strong>. Cuando los 13 operarios estén en sus puestos listos para empezar, toca el botón verde para arrancar la producción simultáneamente:
+            </div>
+          </div>
+          <span class="badge-pill" style="background:#f59e0b; color:#000; font-weight:900;">⏳ EN ESPERA (00:00)</span>
+        </div>
+        <button class="giant-btn btn-emerald" style="margin-bottom:0; min-height:70px; font-size:18px;" onclick="iniciarProduccionOficial()">
+          <span>▶️ COMENZAR PRODUCCIÓN DEL LABORATORIO AHORA</span>
+          <span class="giant-btn-sub">Arranca el cronómetro oficial, habilita las 4 estaciones y sincroniza los 13 celulares</span>
+        </button>
+      </div>
+    `;
+  } else {
+    bannerEl.innerHTML = '';
+  }
+}
+
 function renderAll() {
   if (!appData) return;
   renderHeaderKPIs();
+  renderProductionStartBanner();
   renderOperatorSelector();
   renderStationReplenishBanner();
   renderActiveStationPanel();
@@ -265,8 +301,18 @@ function renderHeaderKPIs() {
   document.getElementById('kpiPtCajitas').textContent = `${th.unidadesTerminadasEstandar}E / ${th.unidadesTerminadasPlus}P`;
   document.getElementById('kpiPtNuevos').textContent = `${th.unidadesTerminadasNuevoEstandar || 0}E / ${th.unidadesTerminadasNuevoPlus || 0}P`;
 
-  const estadoTexto = state.session.estado === 'PAUSADO' ? '⏸️ PAUSADO' : '⏱️ ' + formatSecondsMMSS(metrics.tiempoEfectivoSeg);
+  const isWaiting = state.session.estado === 'LISTO_PARA_INICIAR';
+  const isPaused = state.session.estado === 'PAUSADO';
+  const estadoTexto = isWaiting
+    ? '⏳ ESPERANDO INICIO'
+    : (isPaused ? '⏸️ PAUSADO' : '⏱️ ' + formatSecondsMMSS(metrics.tiempoEfectivoSeg));
   document.getElementById('clockBadge').textContent = estadoTexto;
+
+  const btnHdrStart = document.getElementById('btnHeaderIniciarProd');
+  if (btnHdrStart) {
+    btnHdrStart.style.display = isWaiting ? 'inline-block' : 'none';
+  }
+
   document.getElementById('connCountText').textContent = `${serverInfo?.connectedDevices || 1} Cel.`;
   const buf = metrics.estadoAmortiguadores;
   const pedActivos = (state.pedidosDocente || []).filter(p => p.estado !== 'COMPLETADO').length;
@@ -291,9 +337,10 @@ function renderOperatorSelector() {
     const isActive = op.id === selectedOperatorId;
     const st = appData.metrics.statsOperarios[op.id];
     const count = st ? st.unidadesProducidas : 0;
+    const polBadge = op.esPolivalente ? ' 🔄' : '';
     return `
-      <button class="op-chip ${isActive ? 'active' : ''}" onclick="selectOperator('${op.id}')">
-        <div>#${op.numero} • ${op.nombre}</div>
+      <button class="op-chip ${isActive ? 'active' : ''}" onclick="selectOperator('${op.id}')" style="${op.esPolivalente && !isActive ? 'border-color:#f59e0b;' : ''}">
+        <div>#${op.numero} • ${op.nombre}${polBadge}</div>
         <span class="op-area-tag">${areaShort[op.area] || op.area} (${count})</span>
       </button>
     `;
@@ -646,11 +693,109 @@ function renderDocenteTab() {
 // RENDERIZADO DE LA ESTACIÓN ACTIVA (LAS 4 ESTACIONES Y LOS 4 PRODUCTOS)
 // ============================================================================
 
+function togglePolivalentePicker() {
+  polivalentePickerOpen = !polivalentePickerOpen;
+  renderPolivalenteControlBanner();
+}
+
+function cambiarAreaPolivalente(operarioId, nuevaArea) {
+  polivalentePickerOpen = false;
+  sendAction({
+    type: 'CAMBIAR_AREA_POLIVALENTE',
+    operarioId,
+    nuevaArea
+  });
+}
+
+function renderPolivalenteControlBanner() {
+  const bannerEl = document.getElementById('polivalenteControlBanner');
+  if (!bannerEl || !appData) return;
+
+  const { state } = appData;
+  const op = state.operarios.find(o => o.id === selectedOperatorId) || state.operarios[0];
+
+  if (!op.esPolivalente) {
+    bannerEl.innerHTML = '';
+    return;
+  }
+
+  const areaTitulos = {
+    ENROLLADO: '1. Enrollado (Tubos)',
+    PEGADO: '2. Pegado (Placas/Bloques)',
+    CORTADO: '3. Cortado (Máquina)',
+    ENSAMBLADO: '4. Ensamblado (4 Productos)'
+  };
+  const areaColores = {
+    ENROLLADO: '#3b82f6',
+    PEGADO: '#06b6d4',
+    CORTADO: '#f59e0b',
+    ENSAMBLADO: '#10b981'
+  };
+
+  const inicioTramo = op.inicioAreaActualTimestamp || state.session.inicioTimestamp;
+  const tiempoEnAreaActualSeg = (inicioTramo && state.session.estado !== 'LISTO_PARA_INICIAR')
+    ? Math.max(0, Math.floor((Date.now() - inicioTramo) / 1000))
+    : 0;
+  const horaInicioTramo = inicioTramo ? new Date(inicioTramo).toLocaleTimeString() : '--:--:--';
+
+  const historial = op.historialPolivalencia || [];
+  const histHtml = historial.slice(0, 3).map(h => `
+    <div style="font-size:11px; color:#cbd5e1; margin-top:3px;">
+      ⏱️ <strong>${h.horaCambioTexto}:</strong> Pasó de <span style="color:#94a3b8;">${h.desdeAreaNombre}</span> ➜ <strong style="color:#34d399;">${h.haciaAreaNombre}</strong> (Estuvo ${h.duracionEnAreaAnteriorSeg}s en ${h.desdeArea})
+    </div>
+  `).join('');
+
+  const opcionesAreasHtml = (op.areasPolivalentes || []).map(areaKey => {
+    const esActual = op.area === areaKey;
+    const colorArea = areaColores[areaKey] || '#38bdf8';
+    return `
+      <button class="giant-btn" style="min-height:66px; margin-bottom:0; background:${esActual ? 'rgba(16,185,129,0.22)' : 'rgba(30,41,59,0.95)'}; border:2px solid ${colorArea};"
+        onclick="cambiarAreaPolivalente('${op.id}', '${areaKey}')">
+        <span style="color:${colorArea}; font-size:15px;">
+          ${esActual ? `✅ TRABAJANDO AHORA EN: ${areaTitulos[areaKey]}` : `🚀 IR A APOYAR A: ${areaTitulos[areaKey]}`}
+        </span>
+        <span class="giant-btn-sub">
+          ${esActual ? `Iniciaste esta labor a las ${horaInicioTramo} (${formatSecondsMMSS(tiempoEnAreaActualSeg)} activo)` : `Toca aquí cuando empieces a trabajar en ${areaTitulos[areaKey]} para registrar la hora exacta`}
+        </span>
+      </button>
+    `;
+  }).join('');
+
+  bannerEl.innerHTML = `
+    <div style="border:2px solid #f59e0b; background:linear-gradient(180deg, rgba(245,158,11,0.18), rgba(15,23,42,0.96)); border-radius:14px; padding:12px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="font-size:14px; font-weight:900; color:#fbbf24;">
+            🔄 OPERARIO POLIVALENTE — #${op.numero} ${op.nombre.toUpperCase()} (${(op.areasPolivalentes || []).join(' ⇄ ')})
+          </div>
+          <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">
+            Área actual: <strong style="color:#34d399;">${op.areaNombre}</strong> • Tiempo en esta labor: <strong style="color:#38bdf8;">${formatSecondsMMSS(tiempoEnAreaActualSeg)}</strong> (Inició: ${horaInicioTramo})
+          </div>
+        </div>
+        <button class="btn-secondary" style="background:#f59e0b; border-color:#fde68a; color:#000; font-weight:900; padding:10px 14px; font-size:13px;" onclick="togglePolivalentePicker()">
+          🔄 ${polivalentePickerOpen ? 'Cerrar Opciones de Área ▴' : 'CAMBIAR DE ÁREA (IR A OTRA ESTACIÓN) ▾'}
+        </button>
+      </div>
+
+      <div style="display:${polivalentePickerOpen ? 'grid' : 'none'}; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(245,158,11,0.35);">
+        <div style="grid-column:1 / -1; font-size:11px; font-weight:800; color:#fde68a;">
+          👇 SELECCIONA EL ÁREA A DONDE VAS A TRABAJAR AHORA (SE REGISTRARÁ LA HORA EXACTA DE INICIO):
+        </div>
+        ${opcionesAreasHtml}
+      </div>
+
+      ${histHtml ? `<div style="margin-top:8px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.15);">${histHtml}</div>` : ''}
+    </div>
+  `;
+}
+
 function renderActiveStationPanel() {
   const { state, metrics, specs } = appData;
   const op = state.operarios.find(o => o.id === selectedOperatorId) || state.operarios[0];
   const st = metrics.statsOperarios[op.id] || {};
   const buf = metrics.estadoAmortiguadores;
+
+  renderPolivalenteControlBanner();
 
   document.getElementById('activeOpTitle').textContent = `👷 #${op.numero} ${op.nombre} — ${op.areaNombre}`;
   document.getElementById('activeOpRole').textContent = op.rol;
@@ -689,32 +834,62 @@ function renderActiveStationPanel() {
     actualEl.textContent = '2. Pegado (4 Op)';
     destinoEl.textContent = `Buffer Corte: ${buf.cortado.actual} unid. (${buf.cortado.totalPlacas} placas)`;
 
-    const botonesPlacas = Object.values(specs.PLACA_SPECS).map(sp => {
-      const cantPegadas = state.contadores.placasPegadas[sp.id] || 0;
-      const enColaCorte = buf.cortado.conteoPlacasCola[sp.id] || 0;
+    // Agrupar las placas a pegar en 4 marcos visuales (1 por cada uno de los 4 productos)
+    const marcosPorProducto = Object.values(specs.BOM_CAJAS).map(prod => {
+      const placasGrupo = Object.values(specs.PLACA_SPECS).filter(
+        sp => sp.productoGrupo === prod.tipo && sp.tubosRequeridos > 0
+      );
+      const cortablesProdEnBuffer = buf.cortado.cortablesPorProducto?.[prod.tipo] ?? 0;
+
+      const botonesGrupoHtml = placasGrupo.map(sp => {
+        const cantPegadas = state.contadores.placasPegadas[sp.id] || 0;
+        const enColaCorte = buf.cortado.conteoPlacasCola[sp.id] || 0;
+        return `
+          <button class="plate-btn" style="border-color:${sp.color};"
+            onclick="sendAction({ type: 'PEGADO', operarioId: '${op.id}', tipoPlaca: '${sp.id}' })">
+            <div class="plate-btn-top">
+              <span class="plate-btn-title" style="color:${sp.color};">➕ ${sp.corto}</span>
+              <span class="plate-badge">-${sp.tubosRequeridos} tubos</span>
+            </div>
+            <div class="plate-btn-bottom">
+              Rinde en corte: <strong>${sp.rendimientoCorte} ${sp.nombrePiezaResultante}</strong><br/>
+              <span style="font-size:10px; opacity:0.88;">En Amortiguador Corte: <strong style="color:#fbbf24;">${enColaCorte}</strong> placas • Pegadas hoy: ${cantPegadas}</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+
       return `
-        <button class="plate-btn" style="border-color:${sp.color};"
-          onclick="sendAction({ type: 'PEGADO', operarioId: '${op.id}', tipoPlaca: '${sp.id}' })">
-          <div class="plate-btn-top">
-            <span class="plate-btn-title" style="color:${sp.color};">➕ ${sp.corto}</span>
-            <span class="plate-badge">-${sp.tubosRequeridos} tubos</span>
+        <div style="border:2px solid ${prod.color}; background:rgba(15,23,42,0.88); border-radius:14px; padding:12px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,0.28);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.12);">
+            <div>
+              <div style="font-size:15px; font-weight:900; color:${prod.color};">
+                ${prod.icono} MARCO DE PLACAS PARA: ${prod.nombre.toUpperCase()}
+              </div>
+              <div style="font-size:11px; color:#cbd5e1;">
+                ${prod.subtituloPegado || prod.descripcion}
+              </div>
+            </div>
+            <span class="badge-pill" style="border-color:${prod.color}; color:${prod.color}; font-weight:800;">
+              🛡️ Amortiguador Corte ${prod.corto}: ${cortablesProdEnBuffer} unid. completas
+            </span>
           </div>
-          <div class="plate-btn-bottom">
-            Sale en corte: <strong>${sp.rendimientoCorte} ${sp.nombrePiezaResultante}</strong><br/>
-            <span style="font-size:10px; opacity:0.85;">En Buffer Corte: <strong>${enColaCorte}</strong> placas • Pegadas hoy: ${cantPegadas}</span>
+          <div class="action-grid-2">
+            ${botonesGrupoHtml}
           </div>
-        </button>
+        </div>
       `;
     }).join('');
 
     container.innerHTML = `
-      <div style="background:rgba(16,185,129,0.12); border:1px solid ${buf.pegado.color}; border-radius:10px; padding:9px 12px; margin-bottom:10px; font-size:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+      <div style="background:rgba(16,185,129,0.12); border:1px solid ${buf.pegado.color}; border-radius:10px; padding:9px 12px; margin-bottom:12px; font-size:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
         <span>🛡️ <strong>Tu Amortiguador de Entrada (Pegado):</strong> <strong style="color:#38bdf8; font-size:15px;">${state.wip.tubosDisponibles} tubos</strong> (Inició con ${buf.pegado.meta} tubos)</span>
         <span class="badge-pill" style="color:${buf.pegado.color};">${buf.pegado.porcentaje}% • ${buf.pegado.texto}</span>
       </div>
-      <div class="action-grid-2">
-        ${botonesPlacas}
+      <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px;">
+        📦 PLACAS SEPARADAS EN MARCOS POR CADA UNO DE LOS 4 PRODUCTOS (AMORTIGUADORES INDEPENDIENTES):
       </div>
+      ${marcosPorProducto}
     `;
   } else if (op.area === 'CORTADO') {
     origenEl.textContent = `Amortiguador: ${buf.cortado.actual} unid. (${buf.cortado.totalPlacas} placas)`;
@@ -723,37 +898,54 @@ function renderActiveStationPanel() {
 
     const kitBtnsHtml = Object.values(specs.BOM_CAJAS).map(prod => {
       const cortadosHoy = state.contadores.kitsCortadosPorProducto?.[prod.tipo] || 0;
+      const dispEnCorte = buf.cortado.cortablesPorProducto?.[prod.tipo] ?? 0;
       return `
         <button class="giant-btn ${prod.btnClass}" style="min-height:82px; font-size:15px; margin-bottom:0;"
           onclick="sendAction({ type: 'CORTADO_KIT_CAJA', operarioId: '${op.id}', tipoCaja: '${prod.tipo}' })">
           <span>✂️ CORTAR KIT: ${prod.icono} ${prod.nombre.toUpperCase()}</span>
-          <span class="giant-btn-sub">Envía 1 kit completo de piezas a Ensamblado (Cortados hoy: ${cortadosHoy})</span>
+          <span class="giant-btn-sub">En Amortiguador Corte: ${dispEnCorte} kits • Cortados hoy: ${cortadosHoy}</span>
         </button>
       `;
     }).join('');
 
-    const corteDirectoBtns = Object.values(specs.PLACA_SPECS).map(sp => {
-      const enBufferCorte = buf.cortado.conteoPlacasCola[sp.id] || 0;
-      const stockPiezaEnsamble = state.wip.piezasCortadas[sp.piezaResultante] || 0;
+    const marcosCortePorProducto = Object.values(specs.BOM_CAJAS).map(prod => {
+      const placasGrupo = Object.values(specs.PLACA_SPECS).filter(
+        sp => sp.productoGrupo === prod.tipo && sp.tubosRequeridos > 0
+      );
+      const btnsCorteGrupo = placasGrupo.map(sp => {
+        const enBufferCorte = buf.cortado.conteoPlacasCola[sp.id] || 0;
+        const stockPiezaEnsamble = state.wip.piezasCortadas[sp.piezaResultante] || 0;
+        return `
+          <button class="plate-btn" style="border-color:${sp.color}; min-height:86px;"
+            onclick="sendAction({ type: 'CORTADO', operarioId: '${op.id}', tipoPlaca: '${sp.id}' })">
+            <div class="plate-btn-top">
+              <span class="plate-btn-title" style="color:${sp.color};">✂️ Cortar ${sp.corto}</span>
+              <span class="plate-badge" style="background:#059669;">+${sp.rendimientoCorte} pzas</span>
+            </div>
+            <div class="plate-btn-bottom">
+              En Amortiguador Corte: <strong style="color:#fbbf24;">${enBufferCorte} placas</strong><br/>
+              Sale <strong>+${sp.rendimientoCorte} ${sp.nombrePiezaResultante}</strong> (En Ensamble: ${stockPiezaEnsamble})
+            </div>
+          </button>
+        `;
+      }).join('');
+
       return `
-        <button class="plate-btn" style="border-color:${sp.color}; min-height:86px;"
-          onclick="sendAction({ type: 'CORTADO', operarioId: '${op.id}', tipoPlaca: '${sp.id}' })">
-          <div class="plate-btn-top">
-            <span class="plate-btn-title" style="color:${sp.color};">✂️ Cortar ${sp.corto}</span>
-            <span class="plate-badge" style="background:#059669;">+${sp.rendimientoCorte} pzas</span>
+        <div style="border:2px solid ${prod.color}; background:rgba(15,23,42,0.88); border-radius:14px; padding:10px; margin-bottom:12px;">
+          <div style="font-size:13px; font-weight:900; color:${prod.color}; margin-bottom:6px;">
+            ${prod.icono} CORTAR PLACAS DE: ${prod.nombre.toUpperCase()}
           </div>
-          <div class="plate-btn-bottom">
-            En tu Amortiguador: <strong style="color:#fbbf24;">${enBufferCorte} placas</strong><br/>
-            Envía <strong>+${sp.rendimientoCorte} ${sp.nombrePiezaResultante}</strong> (En Ensamble hay: ${stockPiezaEnsamble})
+          <div class="action-grid-2">
+            ${btnsCorteGrupo}
           </div>
-        </button>
+        </div>
       `;
     }).join('');
 
     container.innerHTML = `
       <div style="background:rgba(245,158,11,0.12); border:1px solid ${buf.cortado.color}; border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <span>🛡️ <strong>Tu Amortiguador de Cortado:</strong> <strong style="color:#fbbf24; font-size:15px;">${buf.cortado.actual} Unidades Equivalentes</strong> (${buf.cortado.totalPlacas} placas en cola)</span>
+          <span>🛡️ <strong>Tu Amortiguador de Cortado por Producto:</strong> C.Est: <strong>${buf.cortado.cortablesPorProducto?.ESTANDAR || 0}</strong> | C.Plus: <strong>${buf.cortado.cortablesPorProducto?.PLUS || 0}</strong> | N.Est: <strong>${buf.cortado.cortablesPorProducto?.NUEVO_ESTANDAR || 0}</strong> | N.Plus: <strong>${buf.cortado.cortablesPorProducto?.NUEVO_PLUS || 0}</strong> (${buf.cortado.totalPlacas} placas)</span>
           <span class="badge-pill" style="color:${buf.cortado.color};">${buf.cortado.porcentaje}% de ${buf.cortado.meta} unid.</span>
         </div>
       </div>
@@ -766,11 +958,9 @@ function renderActiveStationPanel() {
       </div>
 
       <div style="font-size:12px; font-weight:800; color:#94a3b8; margin-bottom:6px;">
-        ✂️ OPCIÓN B: CORTAR POR PLACA / BLOQUE INDIVIDUAL:
+        ✂️ OPCIÓN B: CORTAR POR PLACA / BLOQUE INDIVIDUAL AGRUPADO POR PRODUCTO:
       </div>
-      <div class="action-grid-2">
-        ${corteDirectoBtns}
-      </div>
+      ${marcosCortePorProducto}
     `;
   } else if (op.area === 'ENSAMBLADO') {
     const p = state.wip.piezasCortadas;
@@ -1078,11 +1268,14 @@ function renderThroughputTab() {
   const th = metrics.throughput;
   const buf = metrics.estadoAmortiguadores;
 
+  const btnIniciarTab = document.getElementById('btnIniciarProdTab');
   const btnPausar = document.getElementById('btnPausarReloj');
   const btnReanudar = document.getElementById('btnReanudarReloj');
   if (btnPausar && btnReanudar) {
+    const isWaiting = state.session.estado === 'LISTO_PARA_INICIAR';
     const isPaused = state.session.estado === 'PAUSADO';
-    btnPausar.style.display = isPaused ? 'none' : 'inline-block';
+    if (btnIniciarTab) btnIniciarTab.style.display = isWaiting ? 'inline-block' : 'none';
+    btnPausar.style.display = (!isWaiting && !isPaused) ? 'inline-block' : 'none';
     btnReanudar.style.display = isPaused ? 'inline-block' : 'none';
   }
 
@@ -1311,10 +1504,14 @@ function renderThroughputTab() {
   if (opsBody) {
     opsBody.innerHTML = state.operarios.map(op => {
       const st = metrics.statsOperarios[op.id] || {};
+      const histPol = (op.historialPolivalencia || []);
+      const polTexto = op.esPolivalente
+        ? `<div style="font-size:10px; color:#fbbf24; margin-top:2px;">🔄 Polivalente (${histPol.length} cambios)${histPol[0] ? ` • Último a las ${histPol[0].horaCambioTexto}` : ''}</div>`
+        : '';
       return `
         <tr>
           <td><strong>#${op.numero} (${op.id})</strong></td>
-          <td>${op.nombre}</td>
+          <td>${op.nombre}${polTexto}</td>
           <td>${op.areaNombre}</td>
           <td><strong style="color:#38bdf8; font-size:14px;">${st.unidadesProducidas || 0}</strong></td>
           <td><strong style="color:#34d399;">${st.tiempoCicloPromedioSeg ? `${st.tiempoCicloPromedioSeg} s` : '--'}</strong></td>

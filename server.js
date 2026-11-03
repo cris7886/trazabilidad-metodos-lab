@@ -24,177 +24,300 @@ if (!fs.existsSync(DATA_DIR)) {
 // ============================================================================
 
 const PLACA_SPECS = {
-  // --- SUB-ENSAMBLES DE CAJITA ESTÁNDAR Y CAJITA PLUS ---
-  PLACA_18: {
-    id: 'PLACA_18',
-    nombre: 'Placa de 18 Tubos (Cajitas)',
-    corto: 'Placa 18 (Cajitas)',
+  // ==========================================================================
+  // GRUPO 1: SUB-ENSAMBLES DE CAJITA ESTÁNDAR (CON FIDEO)
+  // ==========================================================================
+  EST_PLACA_18_FIDEO: {
+    id: 'EST_PLACA_18_FIDEO',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Placa 18 con Fideo (Pared Larga Est.)',
+    corto: 'Placa 18 c/Fideo',
     tubosRequeridos: 18,
-    piezaResultante: 'PARED_LARGA',
-    nombrePiezaResultante: 'Paredes Largas (Cajita)',
+    piezaResultante: 'EST_PARED_LARGA',
+    nombrePiezaResultante: 'Paredes Largas Cajita Estándar',
     rendimientoCorte: 5,
-    usoProducto: 'Cajita Estándar y Cajita Plus',
-    color: '#3b82f6'
-  },
-  PLACA_9_PARED: {
-    id: 'PLACA_9_PARED',
-    nombre: 'Placa de 9 Tubos (Pared Corta Cajita)',
-    corto: 'Placa 9 (Pared)',
-    tubosRequeridos: 9,
-    piezaResultante: 'PARED_CORTA',
-    nombrePiezaResultante: 'Paredes Cortas (Cajita)',
-    rendimientoCorte: 5,
-    usoProducto: 'Cajita Estándar y Cajita Plus',
-    color: '#06b6d4'
-  },
-  PLACA_9_BASE: {
-    id: 'PLACA_9_BASE',
-    nombre: 'Placa de 9 Tubos (Base Cajita)',
-    corto: 'Placa 9 (Base)',
-    tubosRequeridos: 9,
-    piezaResultante: 'BASE',
-    nombrePiezaResultante: 'Bases de Cajita',
-    rendimientoCorte: 2,
-    usoProducto: 'Cajita Estándar y Cajita Plus',
+    usoProducto: '1. Cajita Estándar (rinde 5 paredes largas)',
     color: '#10b981'
   },
-  PLACA_13: {
-    id: 'PLACA_13',
-    nombre: 'Placa de 13 Tubos (Tapa Cajita Estándar)',
-    corto: 'Placa 13 (Tapa Caja Est.)',
-    tubosRequeridos: 13,
-    piezaResultante: 'TAPA_ESTANDAR',
-    nombrePiezaResultante: 'Tapa Cajita Estándar (+2 Mermas)',
-    rendimientoCorte: 1,
-    usoProducto: 'Cajita Estándar (y genera 2 mermas p/ Nuevo Est.)',
-    color: '#f59e0b'
-  },
-  PLACA_11: {
-    id: 'PLACA_11',
-    nombre: 'Placa de 11 Tubos (Tapa Cajita Plus)',
-    corto: 'Placa 11 (Tapa Caja Plus)',
-    tubosRequeridos: 11,
-    piezaResultante: 'TAPA_PLUS',
-    nombrePiezaResultante: 'Tapa Cajita Plus',
-    rendimientoCorte: 1,
-    usoProducto: 'Cajita Plus',
-    color: '#ec4899'
-  },
-  PIRAMIDE_3: {
-    id: 'PIRAMIDE_3',
-    nombre: 'Grupo de 3 en Pirámide (Agarrador Cajita)',
-    corto: 'Pirámide 3 (Cajita)',
-    tubosRequeridos: 3,
-    piezaResultante: 'AGARRADOR',
-    nombrePiezaResultante: 'Agarradores (Cajita Est.)',
-    rendimientoCorte: 5,
-    usoProducto: 'Cajita Estándar',
-    color: '#8b5cf6'
-  },
-  BLOQUE_3X3: {
-    id: 'BLOQUE_3X3',
-    nombre: 'Grupo de 9 (Bloque 3x3 Patitas)',
-    corto: 'Bloque 3x3 (9)',
+  EST_PLACA_9_FIDEO: {
+    id: 'EST_PLACA_9_FIDEO',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Placa 9 con Fideo (Pared Corta Est.)',
+    corto: 'Placa 9 c/Fideo',
     tubosRequeridos: 9,
-    piezaResultante: 'PATITA',
-    nombrePiezaResultante: 'Patitas de Cajita',
-    rendimientoCorte: 12,
-    usoProducto: 'Cajita Estándar',
-    color: '#6366f1'
+    piezaResultante: 'EST_PARED_CORTA',
+    nombrePiezaResultante: 'Paredes Cortas Cajita Estándar',
+    rendimientoCorte: 5,
+    usoProducto: '1. Cajita Estándar (rinde 5 paredes cortas)',
+    color: '#059669'
   },
-
-  // --- SUB-ENSAMBLES ESPECÍFICOS DE NUEVO PRODUCTO ESTÁNDAR Y NUEVO PRODUCTO PLUS ---
-  PLACA_14_135: {
-    id: 'PLACA_14_135',
-    nombre: 'Placa de 14 Tubos (Para corte h=13.5 cm)',
-    corto: 'Placa 14 (h=13.5 cm)',
-    tubosRequeridos: 14,
-    piezaResultante: 'PZA_14_H135',
-    nombrePiezaResultante: 'Placas 14 tubos (h=13.5 cm)',
-    rendimientoCorte: 2, // 1 placa de 14 tubos rinde para 2 placas de 13.5 cm
-    usoProducto: 'Nuevo Prod. Estándar (2) y Nuevo Prod. Plus (2)',
-    color: '#0ea5e9'
-  },
-  PLACA_10_135: {
-    id: 'PLACA_10_135',
-    nombre: 'Placa de 10 Tubos (Para corte h=13.5 cm)',
-    corto: 'Placa 10 (h=13.5 cm)',
-    tubosRequeridos: 10,
-    piezaResultante: 'PZA_10_H135',
-    nombrePiezaResultante: 'Placas 10 tubos (h=13.5 cm)',
-    rendimientoCorte: 2, // 1 placa de 10 tubos rinde para 2 placas de 13.5 cm
-    usoProducto: 'Nuevo Prod. Estándar (1) y Nuevo Prod. Plus (1)',
+  EST_PLACA_9_BASE: {
+    id: 'EST_PLACA_9_BASE',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Placa 9 (Base Cajita Estándar)',
+    corto: 'Placa 9 (Base Est.)',
+    tubosRequeridos: 9,
+    piezaResultante: 'EST_BASE',
+    nombrePiezaResultante: 'Bases Cajita Estándar',
+    rendimientoCorte: 2,
+    usoProducto: '1. Cajita Estándar (rinde 2 bases)',
     color: '#14b8a6'
   },
-  PLACA_3_LARGA: {
-    id: 'PLACA_3_LARGA',
-    nombre: 'Placa de 3 Tubos (23.7 cm -> Corte 9 cm)',
-    corto: 'Placa 3 (23.7/9 cm)',
+  EST_PLACA_13_FIDEO: {
+    id: 'EST_PLACA_13_FIDEO',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Placa 13 con Fideo (Tapa Estándar)',
+    corto: 'Placa 13 c/Fideo (Tapa)',
+    tubosRequeridos: 13,
+    piezaResultante: 'EST_TAPA',
+    nombrePiezaResultante: 'Tapa Cajita Estándar (+2 Mermas)',
+    rendimientoCorte: 1,
+    usoProducto: '1. Cajita Estándar (rinde 1 tapa + 2 mermas p/ Nuevo Est.)',
+    color: '#f59e0b'
+  },
+  EST_PIRAMIDE_3_FIDEO: {
+    id: 'EST_PIRAMIDE_3_FIDEO',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Grupo de 3 Pirámide con Fideo (Agarrador Est.)',
+    corto: 'Pirámide 3 c/Fideo',
     tubosRequeridos: 3,
-    piezaResultante: 'PZA_3_LARGA',
-    nombrePiezaResultante: 'Placas 3 tubos (23.7 / 9 cm)',
-    rendimientoCorte: 2, // 2 placas de 3 tubos rinde para 4 placas de 9 cm (1 placa rinde 2)
-    usoProducto: 'Nuevo Prod. Estándar (2) y Nuevo Prod. Plus (2)',
-    color: '#84cc16'
+    piezaResultante: 'EST_AGARRADOR',
+    nombrePiezaResultante: 'Agarradores c/Fideo (Cajita Est.)',
+    rendimientoCorte: 5,
+    usoProducto: '1. Cajita Estándar (rinde 5 agarradores)',
+    color: '#34d399'
   },
-  PLACA_14_5: {
-    id: 'PLACA_14_5',
-    nombre: 'Placa de 14 Tubos (Para corte h=5 cm)',
-    corto: 'Placa 14 (h=5 cm)',
-    tubosRequeridos: 14,
-    piezaResultante: 'PZA_14_H5',
-    nombrePiezaResultante: 'Placas 14 tubos (h=5 cm)',
-    rendimientoCorte: 5, // 1 placa de 14 tubos rinde para 5 placas con altura de 5 cm
-    usoProducto: 'Solo Nuevo Producto Plus (requiere 2)',
-    color: '#a855f7'
+  EST_GRUPO_9_3X3: {
+    id: 'EST_GRUPO_9_3X3',
+    productoGrupo: 'ESTANDAR',
+    nombre: 'Grupo de 9 (3x3 Patitas Cajita Est.)',
+    corto: 'Grupo 9 (3x3 Est.)',
+    tubosRequeridos: 9,
+    piezaResultante: 'EST_PATITA',
+    nombrePiezaResultante: 'Patitas Cajita Estándar',
+    rendimientoCorte: 12,
+    usoProducto: '1. Cajita Estándar (rinde 12 patitas)',
+    color: '#0d9488'
   },
-  PLACA_10_5: {
-    id: 'PLACA_10_5',
-    nombre: 'Placa de 10 Tubos (Para corte h=5 cm)',
-    corto: 'Placa 10 (h=5 cm)',
-    tubosRequeridos: 10,
-    piezaResultante: 'PZA_10_H5',
-    nombrePiezaResultante: 'Placas 10 tubos (h=5 cm)',
-    rendimientoCorte: 5, // 1 placa de 10 tubos rinde para 5 placas con altura de 5 cm
-    usoProducto: 'Solo Nuevo Producto Plus (requiere 1)',
+
+  // ==========================================================================
+  // GRUPO 2: SUB-ENSAMBLES DE CAJITA PLUS (CON BASE DE PAPEL / SIN FIDEO)
+  // ==========================================================================
+  PLUS_PLACA_18_PAPEL: {
+    id: 'PLUS_PLACA_18_PAPEL',
+    productoGrupo: 'PLUS',
+    nombre: 'Placa 18 con Papel (Pared Larga Plus)',
+    corto: 'Placa 18 c/Papel',
+    tubosRequeridos: 18,
+    piezaResultante: 'PLUS_PARED_LARGA',
+    nombrePiezaResultante: 'Paredes Largas Plus (c/Papel)',
+    rendimientoCorte: 5,
+    usoProducto: '2. Cajita Plus (rinde 5 paredes largas plus)',
+    color: '#ec4899'
+  },
+  PLUS_PLACA_9_PAPEL_PARED: {
+    id: 'PLUS_PLACA_9_PAPEL_PARED',
+    productoGrupo: 'PLUS',
+    nombre: 'Placa 9 con Papel (Pared Corta Plus)',
+    corto: 'Placa 9 c/Papel (Pared)',
+    tubosRequeridos: 9,
+    piezaResultante: 'PLUS_PARED_CORTA',
+    nombrePiezaResultante: 'Paredes Cortas Plus (c/Papel)',
+    rendimientoCorte: 5,
+    usoProducto: '2. Cajita Plus (rinde 5 paredes cortas plus)',
+    color: '#db2777'
+  },
+  PLUS_PLACA_9_PAPEL_BASE: {
+    id: 'PLUS_PLACA_9_PAPEL_BASE',
+    productoGrupo: 'PLUS',
+    nombre: 'Placa 9 con Papel (Base Plus)',
+    corto: 'Placa 9 c/Papel (Base)',
+    tubosRequeridos: 9,
+    piezaResultante: 'PLUS_BASE',
+    nombrePiezaResultante: 'Bases Plus (c/Papel)',
+    rendimientoCorte: 2,
+    usoProducto: '2. Cajita Plus (rinde 2 bases plus)',
+    color: '#f472b6'
+  },
+  PLUS_PIRAMIDE_3_SIN_FIDEO: {
+    id: 'PLUS_PIRAMIDE_3_SIN_FIDEO',
+    productoGrupo: 'PLUS',
+    nombre: 'Grupo 3 Pirámide sin Fideo (Agarrador Plus)',
+    corto: 'Pirámide 3 (Sin Fideo)',
+    tubosRequeridos: 3,
+    piezaResultante: 'PLUS_AGARRADOR',
+    nombrePiezaResultante: 'Agarradores Plus (Sin Fideo)',
+    rendimientoCorte: 5,
+    usoProducto: '2. Cajita Plus (rinde 5 agarradores)',
+    color: '#e879f9'
+  },
+  PLUS_GRUPO_9_3X3: {
+    id: 'PLUS_GRUPO_9_3X3',
+    productoGrupo: 'PLUS',
+    nombre: 'Grupo de 9 (3x3 Patitas Cajita Plus)',
+    corto: 'Grupo 9 (3x3 Plus)',
+    tubosRequeridos: 9,
+    piezaResultante: 'PLUS_PATITA',
+    nombrePiezaResultante: 'Patitas Cajita Plus',
+    rendimientoCorte: 12,
+    usoProducto: '2. Cajita Plus (rinde 12 patitas)',
     color: '#d946ef'
   },
-  PLACA_3_FIDEO: {
-    id: 'PLACA_3_FIDEO',
-    nombre: 'Placa de 3 Tubos con Fideo (Agarrador h=5 cm)',
-    corto: 'Placa 3 c/Fideo (5 cm)',
-    tubosRequeridos: 3,
-    piezaResultante: 'PZA_3_FIDEO_H5',
-    nombrePiezaResultante: 'Agarrador 3 tubos c/Fideo (h=5 cm)',
-    rendimientoCorte: 5, // 1 placa de 3 tubos con fideo rinde para 5 placas con altura de 5 cm
-    usoProducto: 'Solo Nuevo Producto Plus (requiere 1)',
-    color: '#f43f5e'
+  PLUS_PLACA_11_PAPEL: {
+    id: 'PLUS_PLACA_11_PAPEL',
+    productoGrupo: 'PLUS',
+    nombre: 'Placa 11 con Papel (Tapas Plus)',
+    corto: 'Placa 11 c/Papel (Tapa)',
+    tubosRequeridos: 11,
+    piezaResultante: 'PLUS_TAPA',
+    nombrePiezaResultante: 'Tapas Cajita Plus (c/Papel)',
+    rendimientoCorte: 2,
+    usoProducto: '2. Cajita Plus (rinde 2 tapas plus)',
+    color: '#fb7185'
   },
-  PLACA_13_NUEVA_TAPA: {
-    id: 'PLACA_13_NUEVA_TAPA',
-    nombre: 'Placa de 13 Tubos (Tapas h=13.5 cm Nuevo Plus)',
-    corto: 'Placa 13 (Tapas 13.5 cm)',
-    tubosRequeridos: 13,
-    piezaResultante: 'PZA_13_TAPA_H135',
-    nombrePiezaResultante: 'Tapas 13 tubos (h=13.5 cm)',
-    rendimientoCorte: 2, // 1 placa de 13 tubos rinde para 2 placas con altura de 13.5 (para las tapas)
-    usoProducto: 'Solo Nuevo Producto Plus (requiere 2 tapas)',
-    color: '#fb923c'
+
+  // ==========================================================================
+  // GRUPO 3: SUB-ENSAMBLES DE NUEVO PRODUCTO ESTÁNDAR
+  // ==========================================================================
+  NEST_PLACA_14_135: {
+    id: 'NEST_PLACA_14_135',
+    productoGrupo: 'NUEVO_ESTANDAR',
+    nombre: 'Placa 14 Tubos (h=13.5 cm — Nuevo Est.)',
+    corto: 'Placa 14 (13.5cm N.Est)',
+    tubosRequeridos: 14,
+    piezaResultante: 'NEST_PZA_14_H135',
+    nombrePiezaResultante: 'Placas 14 (13.5cm Nuevo Est.)',
+    rendimientoCorte: 2,
+    usoProducto: '3. Nuevo Producto Estándar (rinde 2 placas de 13.5 cm)',
+    color: '#3b82f6'
+  },
+  NEST_PLACA_10_135: {
+    id: 'NEST_PLACA_10_135',
+    productoGrupo: 'NUEVO_ESTANDAR',
+    nombre: 'Placa 10 Tubos (h=13.5 cm — Nuevo Est.)',
+    corto: 'Placa 10 (13.5cm N.Est)',
+    tubosRequeridos: 10,
+    piezaResultante: 'NEST_PZA_10_H135',
+    nombrePiezaResultante: 'Placas 10 (13.5cm Nuevo Est.)',
+    rendimientoCorte: 2,
+    usoProducto: '3. Nuevo Producto Estándar (rinde 2 placas de 13.5 cm)',
+    color: '#0ea5e9'
+  },
+  NEST_PLACA_3_LARGA: {
+    id: 'NEST_PLACA_3_LARGA',
+    productoGrupo: 'NUEVO_ESTANDAR',
+    nombre: 'Placa 3 Tubos (23.7/9 cm — Nuevo Est.)',
+    corto: 'Placa 3 (23.7cm N.Est)',
+    tubosRequeridos: 3,
+    piezaResultante: 'NEST_PZA_3_LARGA',
+    nombrePiezaResultante: 'Placas 3 (9cm Nuevo Est.)',
+    rendimientoCorte: 2,
+    usoProducto: '3. Nuevo Producto Estándar (2 placas rinden 4 de 9 cm)',
+    color: '#60a5fa'
   },
   LOTE_MERMA_TAPA_EST: {
     id: 'LOTE_MERMA_TAPA_EST',
-    nombre: 'Merma de Tapa de Caja Estándar (Reutilizada)',
+    productoGrupo: 'NUEVO_ESTANDAR',
+    nombre: 'Merma de Tapa Caja Estándar (Reutilizada)',
     corto: 'Merma Tapa Caja Est.',
-    tubosRequeridos: 0, // Reutiliza la merma de la tapa de la caja estándar
+    tubosRequeridos: 0,
     piezaResultante: 'MERMA_TAPA_EST',
     nombrePiezaResultante: 'Mermas de Tapa Caja Estándar',
     rendimientoCorte: 2,
-    usoProducto: 'Solo Nuevo Producto Estándar (requiere 2 mermas)',
+    usoProducto: '3. Nuevo Producto Estándar (usa 2 mermas de Tapa Estándar)',
     color: '#eab308'
+  },
+
+  // ==========================================================================
+  // GRUPO 4: SUB-ENSAMBLES DE NUEVO PRODUCTO PLUS
+  // ==========================================================================
+  NPLUS_PLACA_14_135: {
+    id: 'NPLUS_PLACA_14_135',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 14 Tubos (h=13.5 cm — Nuevo Plus)',
+    corto: 'Placa 14 (13.5cm N.Plus)',
+    tubosRequeridos: 14,
+    piezaResultante: 'NPLUS_PZA_14_H135',
+    nombrePiezaResultante: 'Placas 14 (13.5cm Nuevo Plus)',
+    rendimientoCorte: 2,
+    usoProducto: '4. Nuevo Producto Plus (rinde 2 placas de 13.5 cm)',
+    color: '#a855f7'
+  },
+  NPLUS_PLACA_10_135: {
+    id: 'NPLUS_PLACA_10_135',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 10 Tubos (h=13.5 cm — Nuevo Plus)',
+    corto: 'Placa 10 (13.5cm N.Plus)',
+    tubosRequeridos: 10,
+    piezaResultante: 'NPLUS_PZA_10_H135',
+    nombrePiezaResultante: 'Placas 10 (13.5cm Nuevo Plus)',
+    rendimientoCorte: 2,
+    usoProducto: '4. Nuevo Producto Plus (rinde 2 placas de 13.5 cm)',
+    color: '#9333ea'
+  },
+  NPLUS_PLACA_14_5: {
+    id: 'NPLUS_PLACA_14_5',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 14 Tubos (h=5 cm — Nuevo Plus)',
+    corto: 'Placa 14 (5cm N.Plus)',
+    tubosRequeridos: 14,
+    piezaResultante: 'NPLUS_PZA_14_H5',
+    nombrePiezaResultante: 'Placas 14 (5cm Nuevo Plus)',
+    rendimientoCorte: 5,
+    usoProducto: '4. Nuevo Producto Plus (rinde 5 placas de 5 cm)',
+    color: '#c084fc'
+  },
+  NPLUS_PLACA_10_5: {
+    id: 'NPLUS_PLACA_10_5',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 10 Tubos (h=5 cm — Nuevo Plus)',
+    corto: 'Placa 10 (5cm N.Plus)',
+    tubosRequeridos: 10,
+    piezaResultante: 'NPLUS_PZA_10_H5',
+    nombrePiezaResultante: 'Placas 10 (5cm Nuevo Plus)',
+    rendimientoCorte: 5,
+    usoProducto: '4. Nuevo Producto Plus (rinde 5 placas de 5 cm)',
+    color: '#8b5cf6'
+  },
+  NPLUS_PLACA_3_LARGA: {
+    id: 'NPLUS_PLACA_3_LARGA',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 3 Tubos (23.7/9 cm — Nuevo Plus)',
+    corto: 'Placa 3 (23.7cm N.Plus)',
+    tubosRequeridos: 3,
+    piezaResultante: 'NPLUS_PZA_3_LARGA',
+    nombrePiezaResultante: 'Placas 3 (9cm Nuevo Plus)',
+    rendimientoCorte: 2,
+    usoProducto: '4. Nuevo Producto Plus (2 placas rinden 4 de 9 cm)',
+    color: '#7c3aed'
+  },
+  NPLUS_PLACA_3_FIDEO_5: {
+    id: 'NPLUS_PLACA_3_FIDEO_5',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 3 con Fideo (Agarrador 5 cm — Nuevo Plus)',
+    corto: 'Placa 3 c/Fideo (5cm)',
+    tubosRequeridos: 3,
+    piezaResultante: 'NPLUS_PZA_3_FIDEO_H5',
+    nombrePiezaResultante: 'Agarrador 3 c/Fideo (5cm N.Plus)',
+    rendimientoCorte: 5,
+    usoProducto: '4. Nuevo Producto Plus (rinde 5 placas de 5 cm)',
+    color: '#f43f5e'
+  },
+  NPLUS_PLACA_13_TAPA: {
+    id: 'NPLUS_PLACA_13_TAPA',
+    productoGrupo: 'NUEVO_PLUS',
+    nombre: 'Placa 13 Tubos (Tapas 13.5 cm — Nuevo Plus)',
+    corto: 'Placa 13 (Tapas 13.5cm)',
+    tubosRequeridos: 13,
+    piezaResultante: 'NPLUS_PZA_13_TAPA_H135',
+    nombrePiezaResultante: 'Tapas 13 (13.5cm Nuevo Plus)',
+    rendimientoCorte: 2,
+    usoProducto: '4. Nuevo Producto Plus (rinde 2 tapas de 13.5 cm)',
+    color: '#fb923c'
   }
 };
 
-// Los 4 Productos Terminados de la Línea (todos finalizan en el Área 4: Ensamblado)
+// Los 4 Productos Terminados de la Línea (cada uno con su propio amortiguador e inventario separado)
 const BOM_CAJAS = {
   ESTANDAR: {
     tipo: 'ESTANDAR',
@@ -204,16 +327,25 @@ const BOM_CAJAS = {
     btnClass: 'btn-emerald',
     nombre: 'Cajita Estándar',
     corto: 'Cajita Estándar',
-    descripcion: '2 Paredes Largas, 2 Paredes Cortas, 1 Base, 1 Tapa Estándar, 3 Agarradores, 4 Patitas',
+    subtituloPegado: 'Piezas con Fideo: Placa 18 c/Fideo (x5), Placa 9 c/Fideo (x5), Placa 9 Base (x2), Placa 13 c/Fideo Tapa (x1), Pirámide 3 c/Fideo (x5), Grupo 9 3x3 (x12)',
+    descripcion: '2 Paredes Largas c/Fideo, 2 Paredes Cortas c/Fideo, 1 Base, 1 Tapa Estándar c/Fideo, 3 Agarradores c/Fideo, 4 Patitas',
     tubosEquivalentes: 33.1,
-    placaTapaRef: 'PLACA_13',
+    placaTapaRef: 'EST_PLACA_13_FIDEO',
+    placasDelProducto: [
+      'EST_PLACA_18_FIDEO',
+      'EST_PLACA_9_FIDEO',
+      'EST_PLACA_9_BASE',
+      'EST_PLACA_13_FIDEO',
+      'EST_PIRAMIDE_3_FIDEO',
+      'EST_GRUPO_9_3X3'
+    ],
     componentes: {
-      PARED_LARGA: 2,
-      PARED_CORTA: 2,
-      BASE: 1,
-      TAPA_ESTANDAR: 1,
-      AGARRADOR: 3,
-      PATITA: 4
+      EST_PARED_LARGA: 2,
+      EST_PARED_CORTA: 2,
+      EST_BASE: 1,
+      EST_TAPA: 1,
+      EST_AGARRADOR: 3,
+      EST_PATITA: 4
     }
   },
   PLUS: {
@@ -224,14 +356,25 @@ const BOM_CAJAS = {
     btnClass: 'btn-pink',
     nombre: 'Cajita Plus',
     corto: 'Cajita Plus',
-    descripcion: '2 Paredes Largas, 2 Paredes Cortas, 1 Base, 1 Tapa Plus (Termina en Ensamblado)',
-    tubosEquivalentes: 26.3,
-    placaTapaRef: 'PLACA_11',
+    subtituloPegado: 'Piezas con Base de Papel: Placa 18 c/Papel (x5), Placa 9 c/Papel Pared (x5), Placa 9 c/Papel Base (x2), Pirámide 3 sin Fideo (x5), Grupo 9 3x3 (x12), Placa 11 c/Papel (x2)',
+    descripcion: '2 Paredes Largas Plus c/Papel, 2 Paredes Cortas Plus c/Papel, 1 Base Plus c/Papel, 1 Tapa Plus c/Papel, 3 Agarradores sin Fideo, 4 Patitas',
+    tubosEquivalentes: 25.6,
+    placaTapaRef: 'PLUS_PLACA_11_PAPEL',
+    placasDelProducto: [
+      'PLUS_PLACA_18_PAPEL',
+      'PLUS_PLACA_9_PAPEL_PARED',
+      'PLUS_PLACA_9_PAPEL_BASE',
+      'PLUS_PIRAMIDE_3_SIN_FIDEO',
+      'PLUS_GRUPO_9_3X3',
+      'PLUS_PLACA_11_PAPEL'
+    ],
     componentes: {
-      PARED_LARGA: 2,
-      PARED_CORTA: 2,
-      BASE: 1,
-      TAPA_PLUS: 1
+      PLUS_PARED_LARGA: 2,
+      PLUS_PARED_CORTA: 2,
+      PLUS_BASE: 1,
+      PLUS_TAPA: 1,
+      PLUS_AGARRADOR: 3,
+      PLUS_PATITA: 4
     }
   },
   NUEVO_ESTANDAR: {
@@ -242,13 +385,19 @@ const BOM_CAJAS = {
     btnClass: 'btn-blue',
     nombre: 'Nuevo Producto Estándar',
     corto: 'Nuevo Prod. Estándar',
+    subtituloPegado: 'Placas Nuevo Estándar: Placa 14 h=13.5cm (rinde 2), Placa 10 h=13.5cm (rinde 2), Placa 3 h=23.7/9cm (rinde 2) + 2 Mermas Tapa Estándar',
     descripcion: '2 Placas 14 (13.5cm), 1 Placa 10 (13.5cm), 2 Placas 3 (23.7/9cm), 2 Mermas Tapa Caja Estándar',
-    tubosEquivalentes: 22.0, // (2/2)*14 + (1/2)*10 + (2/2)*3 = 14 + 5 + 3 = 22 tubos (+ 2 mermas reutilizadas)
-    placaTapaRef: 'PLACA_14_135',
+    tubosEquivalentes: 22.0,
+    placaTapaRef: 'NEST_PLACA_14_135',
+    placasDelProducto: [
+      'NEST_PLACA_14_135',
+      'NEST_PLACA_10_135',
+      'NEST_PLACA_3_LARGA'
+    ],
     componentes: {
-      PZA_14_H135: 2,
-      PZA_10_H135: 1,
-      PZA_3_LARGA: 2,
+      NEST_PZA_14_H135: 2,
+      NEST_PZA_10_H135: 1,
+      NEST_PZA_3_LARGA: 2,
       MERMA_TAPA_EST: 2
     }
   },
@@ -260,17 +409,27 @@ const BOM_CAJAS = {
     btnClass: 'btn-amber',
     nombre: 'Nuevo Producto Plus',
     corto: 'Nuevo Prod. Plus',
+    subtituloPegado: 'Placas Nuevo Plus: Placa 14 13.5cm (x2), Placa 10 13.5cm (x2), Placa 14 5cm (x5), Placa 10 5cm (x5), Placa 3 23.7/9cm (x2), Placa 3 c/Fideo 5cm (x5), Placa 13 Tapas 13.5cm (x2)',
     descripcion: '2 Placas 14 (13.5cm), 1 Placa 10 (13.5cm), 2 Placas 14 (5cm), 1 Placa 10 (5cm), 2 Placas 3 (23.7/9cm), 1 Placa 3 c/Fideo (5cm), 2 Placas 13 Tapas (13.5cm)',
-    tubosEquivalentes: 43.2, // 14 + 5 + 5.6 + 2 + 3 + 0.6 + 13 = 43.2 tubos
-    placaTapaRef: 'PLACA_13_NUEVA_TAPA',
+    tubosEquivalentes: 43.2,
+    placaTapaRef: 'NPLUS_PLACA_13_TAPA',
+    placasDelProducto: [
+      'NPLUS_PLACA_14_135',
+      'NPLUS_PLACA_10_135',
+      'NPLUS_PLACA_14_5',
+      'NPLUS_PLACA_10_5',
+      'NPLUS_PLACA_3_LARGA',
+      'NPLUS_PLACA_3_FIDEO_5',
+      'NPLUS_PLACA_13_TAPA'
+    ],
     componentes: {
-      PZA_14_H135: 2,
-      PZA_10_H135: 1,
-      PZA_14_H5: 2,
-      PZA_10_H5: 1,
-      PZA_3_LARGA: 2,
-      PZA_3_FIDEO_H5: 1,
-      PZA_13_TAPA_H135: 2
+      NPLUS_PZA_14_H135: 2,
+      NPLUS_PZA_10_H135: 1,
+      NPLUS_PZA_14_H5: 2,
+      NPLUS_PZA_10_H5: 1,
+      NPLUS_PZA_3_LARGA: 2,
+      NPLUS_PZA_3_FIDEO_H5: 1,
+      NPLUS_PZA_13_TAPA_H135: 2
     }
   }
 };
@@ -291,22 +450,32 @@ const DEFAULT_AMORTIGUADORES = {
   ensambladoNuevoPlus: 3             // Estación 4: 3 Nuevo Producto Plus en piezas cortadas
 };
 
+const AREA_NOMBRES = {
+  ENROLLADO: '1. Enrollado (Tubos)',
+  PEGADO: '2. Pegado (Placas/Bloques)',
+  CORTADO: '3. Cortado (Máquina)',
+  ENSAMBLADO: '4. Ensamblado (4 Productos)'
+};
+
 // Distribución oficial de los 13 operarios en 4 estaciones:
 // Enrollado (4: Op 1-4), Pegado (4: Op 5-8), Cortado (1: Op 9), Ensamblado (4: Op 10-13)
+// Operarios Polivalentes:
+//   - Operario 8 (OP-08): Polivalente entre 2. Pegado <-> 4. Ensamblado
+//   - Operario 9 (OP-09): Polivalente entre 3. Cortado <-> 2. Pegado
 const DEFAULT_OPERATORS = [
-  { id: 'OP-01', numero: 1, nombre: 'Operario 1', area: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (1/4)' },
-  { id: 'OP-02', numero: 2, nombre: 'Operario 2', area: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (2/4)' },
-  { id: 'OP-03', numero: 3, nombre: 'Operario 3', area: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (3/4)' },
-  { id: 'OP-04', numero: 4, nombre: 'Operario 4', area: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (4/4)' },
-  { id: 'OP-05', numero: 5, nombre: 'Operario 5', area: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (1/4)' },
-  { id: 'OP-06', numero: 6, nombre: 'Operario 6', area: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (2/4)' },
-  { id: 'OP-07', numero: 7, nombre: 'Operario 7', area: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (3/4)' },
-  { id: 'OP-08', numero: 8, nombre: 'Operario 8', area: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (4/4)' },
-  { id: 'OP-09', numero: 9, nombre: 'Operario 9', area: 'CORTADO', areaNombre: '3. Cortado (Máquina)', rol: 'Operador Único de Máquina de Corte (1/1)' },
-  { id: 'OP-10', numero: 10, nombre: 'Operario 10', area: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (1/4)' },
-  { id: 'OP-11', numero: 11, nombre: 'Operario 11', area: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (2/4)' },
-  { id: 'OP-12', numero: 12, nombre: 'Operario 12', area: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (3/4)' },
-  { id: 'OP-13', numero: 13, nombre: 'Operario 13', area: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (4/4)' }
+  { id: 'OP-01', numero: 1, nombre: 'Operario 1', area: 'ENROLLADO', areaBase: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (1/4)', esPolivalente: false, areasPolivalentes: ['ENROLLADO'] },
+  { id: 'OP-02', numero: 2, nombre: 'Operario 2', area: 'ENROLLADO', areaBase: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (2/4)', esPolivalente: false, areasPolivalentes: ['ENROLLADO'] },
+  { id: 'OP-03', numero: 3, nombre: 'Operario 3', area: 'ENROLLADO', areaBase: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (3/4)', esPolivalente: false, areasPolivalentes: ['ENROLLADO'] },
+  { id: 'OP-04', numero: 4, nombre: 'Operario 4', area: 'ENROLLADO', areaBase: 'ENROLLADO', areaNombre: '1. Enrollado (Tubos)', rol: 'Enrollador de Papel Carta (4/4)', esPolivalente: false, areasPolivalentes: ['ENROLLADO'] },
+  { id: 'OP-05', numero: 5, nombre: 'Operario 5', area: 'PEGADO', areaBase: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (1/4)', esPolivalente: false, areasPolivalentes: ['PEGADO'] },
+  { id: 'OP-06', numero: 6, nombre: 'Operario 6', area: 'PEGADO', areaBase: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (2/4)', esPolivalente: false, areasPolivalentes: ['PEGADO'] },
+  { id: 'OP-07', numero: 7, nombre: 'Operario 7', area: 'PEGADO', areaBase: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: 'Armador de Placas y Bloques (3/4)', esPolivalente: false, areasPolivalentes: ['PEGADO'] },
+  { id: 'OP-08', numero: 8, nombre: 'Operario 8', area: 'PEGADO', areaBase: 'PEGADO', areaNombre: '2. Pegado (Placas/Bloques)', rol: '🔄 Operario Polivalente (2. Pegado ⇄ 4. Ensamblado)', esPolivalente: true, areasPolivalentes: ['PEGADO', 'ENSAMBLADO'], inicioAreaActualTimestamp: null, historialPolivalencia: [] },
+  { id: 'OP-09', numero: 9, nombre: 'Operario 9', area: 'CORTADO', areaBase: 'CORTADO', areaNombre: '3. Cortado (Máquina)', rol: '🔄 Operario Polivalente (3. Cortado ⇄ 2. Pegado)', esPolivalente: true, areasPolivalentes: ['CORTADO', 'PEGADO'], inicioAreaActualTimestamp: null, historialPolivalencia: [] },
+  { id: 'OP-10', numero: 10, nombre: 'Operario 10', area: 'ENSAMBLADO', areaBase: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (1/4)', esPolivalente: false, areasPolivalentes: ['ENSAMBLADO'] },
+  { id: 'OP-11', numero: 11, nombre: 'Operario 11', area: 'ENSAMBLADO', areaBase: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (2/4)', esPolivalente: false, areasPolivalentes: ['ENSAMBLADO'] },
+  { id: 'OP-12', numero: 12, nombre: 'Operario 12', area: 'ENSAMBLADO', areaBase: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (3/4)', esPolivalente: false, areasPolivalentes: ['ENSAMBLADO'] },
+  { id: 'OP-13', numero: 13, nombre: 'Operario 13', area: 'ENSAMBLADO', areaBase: 'ENSAMBLADO', areaNombre: '4. Ensamblado (4 Productos)', rol: 'Ensamblador de Productos (4/4)', esPolivalente: false, areasPolivalentes: ['ENSAMBLADO'] }
 ];
 
 function createEmptyPiezasMap(val = 0) {
@@ -465,13 +634,13 @@ function createInitialState(preserveOperators = null, customBuffers = null) {
 
   const now = Date.now();
   const s = {
-    version: '2.1.0',
+    version: '2.3.0',
     session: {
       id: 'SIM-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       nombre: 'Simulación Semanal - Lab. Ingeniería de Métodos (4 Áreas / 4 Productos)',
       loteDestinoActual: 'Almacén Producto Terminado (Stock General)',
-      estado: 'EN_CURSO',
-      inicioTimestamp: now,
+      estado: 'LISTO_PARA_INICIAR', // Espera a que se pulse el botón "▶️ COMENZAR PRODUCCIÓN"
+      inicioTimestamp: null,
       pausaAcumuladaMs: 0,
       ultimaPausaTimestamp: null,
       modoInventarioFlexible: true,
@@ -638,6 +807,7 @@ const historialUndo = [];
 function guardarSnapshotUndo(descripcion, operarioId) {
   try {
     const copia = JSON.parse(JSON.stringify({
+      operarios: state.operarios,
       wip: state.wip,
       contadores: state.contadores,
       cajas: state.cajas,
@@ -662,6 +832,7 @@ function accionDeshacerUltimo() {
     return { ok: false, error: 'No hay acciones recientes para deshacer.' };
   }
   const ultimo = historialUndo.pop();
+  if (ultimo.snapshot.operarios) state.operarios = ultimo.snapshot.operarios;
   state.wip = ultimo.snapshot.wip;
   state.contadores = ultimo.snapshot.contadores;
   state.cajas = ultimo.snapshot.cajas;
@@ -681,7 +852,7 @@ function loadState() {
     if (fs.existsSync(STATE_FILE)) {
       const raw = fs.readFileSync(STATE_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.version === '2.1.0') {
+      if (parsed && parsed.version === '2.3.0') {
         state = parsed;
       } else {
         const ops = parsed && parsed.operarios ? parsed.operarios : null;
@@ -944,11 +1115,11 @@ function evaluarEstadoAmortiguador(actual, metaInicial) {
 }
 
 function getEffectiveElapsedSeconds() {
-  if (!state.session.inicioTimestamp) return 1;
+  if (state.session.estado === 'LISTO_PARA_INICIAR' || !state.session.inicioTimestamp) return 0;
   const now = state.session.estado === 'PAUSADO' && state.session.ultimaPausaTimestamp
     ? state.session.ultimaPausaTimestamp
     : Date.now();
-  const elapsedMs = Math.max(1000, (now - state.session.inicioTimestamp) - (state.session.pausaAcumuladaMs || 0));
+  const elapsedMs = Math.max(0, (now - state.session.inicioTimestamp) - (state.session.pausaAcumuladaMs || 0));
   return elapsedMs / 1000;
 }
 
@@ -964,8 +1135,24 @@ function calcularArmablesDeProducto(prodKey, piezasDisponibles) {
   return maxArmables === Infinity ? 0 : maxArmables;
 }
 
+function calcularCortablesDeProductoEnColaCorte(prodKey, conteoPlacasCola) {
+  const receta = BOM_CAJAS[prodKey];
+  if (!receta || !receta.placasDelProducto) return 0;
+  let maxCortables = Infinity;
+  for (const placaId of receta.placasDelProducto) {
+    const sp = PLACA_SPECS[placaId];
+    if (!sp || sp.tubosRequeridos === 0) continue;
+    const reqPiezasPorCaja = receta.componentes[sp.piezaResultante] || 1;
+    const placasDisp = conteoPlacasCola[placaId] || 0;
+    const piezasQueRindenEsasPlacas = placasDisp * sp.rendimientoCorte;
+    maxCortables = Math.min(maxCortables, Math.floor(piezasQueRindenEsasPlacas / reqPiezasPorCaja));
+  }
+  return maxCortables === Infinity ? 0 : maxCortables;
+}
+
 function computeEngineeringMetrics() {
-  const elapsedSec = getEffectiveElapsedSeconds();
+  const rawElapsedSec = getEffectiveElapsedSeconds();
+  const elapsedSec = Math.max(1, rawElapsedSec);
   const elapsedMin = elapsedSec / 60;
   const elapsedHours = elapsedSec / 3600;
 
@@ -986,14 +1173,14 @@ function computeEngineeringMetrics() {
   for (const pk of PRODUCT_KEYS) {
     tasasPorProducto[pk] = {
       unidades: ptPorProducto[pk],
-      porMinuto: +(ptPorProducto[pk] / elapsedMin).toFixed(3),
-      porHora: +(ptPorProducto[pk] / elapsedHours).toFixed(2)
+      porMinuto: rawElapsedSec > 0 ? +(ptPorProducto[pk] / elapsedMin).toFixed(3) : 0,
+      porHora: rawElapsedSec > 0 ? +(ptPorProducto[pk] / elapsedHours).toFixed(2) : 0
     };
   }
 
-  const throughputTotalPorMin = +(ptTotal / elapsedMin).toFixed(3);
-  const throughputTotalPorHora = +(ptTotal / elapsedHours).toFixed(2);
-  const tiempoPorCajaSistemaSeg = ptTotal > 0 ? +(elapsedSec / ptTotal).toFixed(1) : null;
+  const throughputTotalPorMin = rawElapsedSec > 0 ? +(ptTotal / elapsedMin).toFixed(3) : 0;
+  const throughputTotalPorHora = rawElapsedSec > 0 ? +(ptTotal / elapsedHours).toFixed(2) : 0;
+  const tiempoPorCajaSistemaSeg = (ptTotal > 0 && rawElapsedSec > 0) ? +(rawElapsedSec / ptTotal).toFixed(1) : null;
 
   const tubosTotales = state.wip.tubosTotalesProducidos;
   const placasTotalesPegadas = Object.values(state.contadores.placasPegadas).reduce((a, b) => a + b, 0);
@@ -1008,29 +1195,33 @@ function computeEngineeringMetrics() {
     NUEVO_PLUS: calcularArmablesDeProducto('NUEVO_PLUS', p)
   };
 
-  const cajasClassicArmables = Math.min(
-    Math.floor((p.PARED_LARGA || 0) / 2),
-    Math.floor((p.PARED_CORTA || 0) / 2),
-    Math.floor((p.BASE || 0) / 1),
-    armablesPorProducto.ESTANDAR + armablesPorProducto.PLUS
-  );
-  const nuevosArmables = Math.min(
-    Math.floor((p.PZA_14_H135 || 0) / 2),
-    Math.floor((p.PZA_10_H135 || 0) / 1),
-    Math.floor((p.PZA_3_LARGA || 0) / 2),
-    armablesPorProducto.NUEVO_ESTANDAR + armablesPorProducto.NUEVO_PLUS
-  );
-  const cajasTotalesEnBufferEnsamblado = cajasClassicArmables + nuevosArmables;
+  // Como cada uno de los 4 productos tiene ahora sus propias piezas separadas, el total armable es la suma directa
+  const cajasTotalesEnBufferEnsamblado =
+    armablesPorProducto.ESTANDAR +
+    armablesPorProducto.PLUS +
+    armablesPorProducto.NUEVO_ESTANDAR +
+    armablesPorProducto.NUEVO_PLUS;
 
   const conteoPlacasCola = createEmptyPlacasMap(0);
   for (const pl of state.wip.placasEnColaCorte) {
     conteoPlacasCola[pl.tipoPlaca] = (conteoPlacasCola[pl.tipoPlaca] || 0) + 1;
   }
 
-  const cortadoEquivEst = conteoPlacasCola.PLACA_13 || 0;
-  const cortadoEquivPlus = conteoPlacasCola.PLACA_11 || 0;
-  const cortadoEquivNuevos = conteoPlacasCola.PLACA_14_135 || 0;
-  const cortadoEquivTotalCajas = cortadoEquivEst + cortadoEquivPlus + cortadoEquivNuevos;
+  const cortablesPorProducto = {
+    ESTANDAR: calcularCortablesDeProductoEnColaCorte('ESTANDAR', conteoPlacasCola),
+    PLUS: calcularCortablesDeProductoEnColaCorte('PLUS', conteoPlacasCola),
+    NUEVO_ESTANDAR: calcularCortablesDeProductoEnColaCorte('NUEVO_ESTANDAR', conteoPlacasCola),
+    NUEVO_PLUS: calcularCortablesDeProductoEnColaCorte('NUEVO_PLUS', conteoPlacasCola)
+  };
+
+  const cortadoEquivEst = cortablesPorProducto.ESTANDAR;
+  const cortadoEquivPlus = cortablesPorProducto.PLUS;
+  const cortadoEquivNuevos = cortablesPorProducto.NUEVO_ESTANDAR + cortablesPorProducto.NUEVO_PLUS;
+  const cortadoEquivTotalCajas =
+    cortablesPorProducto.ESTANDAR +
+    cortablesPorProducto.PLUS +
+    cortablesPorProducto.NUEVO_ESTANDAR +
+    cortablesPorProducto.NUEVO_PLUS;
 
   const cfg = state.amortiguadoresConfig || DEFAULT_AMORTIGUADORES;
   const metaPegadoTubos = cfg.pegadoTubos || 600;
@@ -1074,10 +1265,11 @@ function computeEngineeringMetrics() {
       cajasEst: cortadoEquivEst,
       cajasPlus: cortadoEquivPlus,
       cajasNuevos: cortadoEquivNuevos,
+      cortablesPorProducto,
       totalPlacas: state.wip.placasEnColaCorte.length,
       conteoPlacasCola,
       faltanteParaMeta: Math.max(0, metaCortadoCajas - cortadoEquivTotalCajas),
-      detalle: `${cortadoEquivTotalCajas} unid. equiv. (${state.wip.placasEnColaCorte.length} placas en cola)`,
+      detalle: `${cortadoEquivTotalCajas} unid. equiv. (C.Est:${cortablesPorProducto.ESTANDAR}, C.Plus:${cortablesPorProducto.PLUS}, N.Est:${cortablesPorProducto.NUEVO_ESTANDAR}, N.Plus:${cortablesPorProducto.NUEVO_PLUS})`,
       ...evaluarEstadoAmortiguador(cortadoEquivTotalCajas, metaCortadoCajas)
     },
     ensamblado: {
@@ -1269,8 +1461,8 @@ function computeEngineeringMetrics() {
   const reposicionPedidos = evaluarProgresoPedidosDocente();
 
   return {
-    tiempoEfectivoSeg: Math.round(elapsedSec),
-    tiempoEfectivoMin: +(elapsedMin).toFixed(2),
+    tiempoEfectivoSeg: Math.round(rawElapsedSec),
+    tiempoEfectivoMin: +(rawElapsedSec / 60).toFixed(2),
     estadoAmortiguadores,
     reposicionPedidos,
     balanceoLinea,
@@ -1573,9 +1765,9 @@ function accionCortado({ operarioId, placaId, tipoPlaca }) {
     timestampCorte: now
   });
 
-  // Si se cortó una PLACA_13 (Tapa de Caja Estándar), se generan automáticamente 2 Mermas de Tapa Estándar aprovechables para el Nuevo Producto Estándar
+  // Si se cortó una EST_PLACA_13_FIDEO (Tapa de Caja Estándar), se generan automáticamente 2 Mermas de Tapa Estándar aprovechables para el Nuevo Producto Estándar
   let notaExtraMerma = '';
-  if (placaCortada.tipoPlaca === 'PLACA_13') {
+  if (placaCortada.tipoPlaca === 'EST_PLACA_13_FIDEO' || placaCortada.tipoPlaca === 'PLACA_13') {
     state.wip.piezasCortadas.MERMA_TAPA_EST = (state.wip.piezasCortadas.MERMA_TAPA_EST || 0) + 2;
     state.contadores.piezasCortadasTotales.MERMA_TAPA_EST = (state.contadores.piezasCortadasTotales.MERMA_TAPA_EST || 0) + 2;
     if (!state.wip.lotesPiezasCortadas.MERMA_TAPA_EST) state.wip.lotesPiezasCortadas.MERMA_TAPA_EST = [];
@@ -1583,7 +1775,7 @@ function accionCortado({ operarioId, placaId, tipoPlaca }) {
       loteCorteId: `MERMA-${placaCortada.id}`,
       placaId: placaCortada.id,
       esAmortiguador: !!placaCortada.esAmortiguador,
-      tipoPlaca: 'PLACA_13',
+      tipoPlaca: 'EST_PLACA_13_FIDEO',
       nombrePlaca: 'Merma de Tapa Estándar',
       piezaResultante: 'MERMA_TAPA_EST',
       nombrePieza: 'Mermas de Tapa Caja Estándar',
@@ -1889,14 +2081,89 @@ function accionMerma({ operarioId, motivo }) {
   return { ok: true, mensaje: 'Merma registrada para control de calidad', evento };
 }
 
+// CAMBIO DE ESTACIÓN PARA OPERARIOS POLIVALENTES (OP-08: Pegado <-> Ensamblado | OP-09: Cortado <-> Pegado)
+function accionCambiarAreaPolivalente({ operarioId, nuevaArea }) {
+  const op = state.operarios.find(o => o.id === operarioId);
+  if (!op) {
+    return { ok: false, error: 'Operario no encontrado.' };
+  }
+  if (!op.esPolivalente) {
+    return { ok: false, error: `El ${op.nombre} no está asignado como operario polivalente.` };
+  }
+  if (!op.areasPolivalentes || !op.areasPolivalentes.includes(nuevaArea)) {
+    return { ok: false, error: `Área destino (${nuevaArea}) no permitida para la polivalencia de ${op.nombre}.` };
+  }
+
+  const now = Date.now();
+  const areaAnterior = op.area;
+  const areaAnteriorNombre = op.areaNombre || AREA_NOMBRES[areaAnterior] || areaAnterior;
+  const nuevaAreaNombre = AREA_NOMBRES[nuevaArea] || nuevaArea;
+
+  if (areaAnterior === nuevaArea) {
+    return { ok: true, mensaje: `Ya te encuentras trabajando en ${nuevaAreaNombre}` };
+  }
+
+  guardarSnapshotUndo(`Polivalencia ${op.id} → ${nuevaArea}`, op.id);
+
+  const inicioTramoPrevio = op.inicioAreaActualTimestamp || state.session.inicioTimestamp || now;
+  const duracionTramoSeg = Math.max(1, +((now - inicioTramoPrevio) / 1000).toFixed(1));
+
+  if (!Array.isArray(op.historialPolivalencia)) {
+    op.historialPolivalencia = [];
+  }
+  op.historialPolivalencia.unshift({
+    id: 'POL-' + now,
+    desdeArea: areaAnterior,
+    desdeAreaNombre: areaAnteriorNombre,
+    haciaArea: nuevaArea,
+    haciaAreaNombre: nuevaAreaNombre,
+    inicioTramoAnteriorTimestamp: inicioTramoPrevio,
+    cambioTimestamp: now,
+    horaCambioTexto: new Date(now).toLocaleTimeString(),
+    duracionEnAreaAnteriorSeg: duracionTramoSeg
+  });
+
+  op.area = nuevaArea;
+  op.areaNombre = nuevaAreaNombre;
+  op.inicioAreaActualTimestamp = now;
+  state.ultimoRegistroPorOperario[op.id] = now; // Reinicia referencia de ciclo para la nueva labor
+
+  const evento = {
+    id: 'EV-POL-' + now + '-' + Math.random().toString(36).slice(2, 5),
+    timestamp: now,
+    operarioId: op.id,
+    operarioNombre: op.nombre,
+    area: nuevaArea,
+    tipoAccion: 'POLIVALENCIA',
+    subtipo: `${areaAnterior}_A_${nuevaArea}`,
+    etiqueta: `🔄 POLIVALENCIA: ${op.nombre} (#${op.numero}) pasó de [${areaAnteriorNombre}] a apoyar en [${nuevaAreaNombre}] (Estuvo ${duracionTramoSeg}s en ${areaAnterior})`,
+    cantidad: 1,
+    cicloSeg: duracionTramoSeg,
+    origen: areaAnteriorNombre,
+    destino: `Inicia labor en ${nuevaAreaNombre}`
+  };
+  agregarEvento(evento);
+  saveState();
+
+  return {
+    ok: true,
+    mensaje: `🔄 ${op.nombre}: ahora estás en ${nuevaAreaNombre} (Tiempo registrado: ${new Date(now).toLocaleTimeString()})`,
+    evento
+  };
+}
+
 function ejecutarPasoSimulacionDemo() {
+  if (state.session.estado === 'LISTO_PARA_INICIAR') {
+    state.session.estado = 'EN_CURSO';
+    state.session.inicioTimestamp = Date.now();
+  }
   accionEnrollado({ operarioId: 'OP-01', cantidad: 50 });
   accionEnrollado({ operarioId: 'OP-02', cantidad: 50 });
 
-  accionPegado({ operarioId: 'OP-05', tipoPlaca: 'PLACA_18' });
-  accionPegado({ operarioId: 'OP-06', tipoPlaca: 'PLACA_14_135' });
-  accionPegado({ operarioId: 'OP-07', tipoPlaca: 'PLACA_13' });
-  accionPegado({ operarioId: 'OP-08', tipoPlaca: 'PLACA_13_NUEVA_TAPA' });
+  accionPegado({ operarioId: 'OP-05', tipoPlaca: 'EST_PLACA_18_FIDEO' });
+  accionPegado({ operarioId: 'OP-06', tipoPlaca: 'PLUS_PLACA_18_PAPEL' });
+  accionPegado({ operarioId: 'OP-07', tipoPlaca: 'NEST_PLACA_14_135' });
+  accionPegado({ operarioId: 'OP-08', tipoPlaca: 'NPLUS_PLACA_13_TAPA' });
 
   accionCortadoKitCaja({ operarioId: 'OP-09', tipoCaja: 'ESTANDAR' });
   accionCortadoKitCaja({ operarioId: 'OP-09', tipoCaja: 'PLUS' });
@@ -2152,7 +2419,43 @@ const server = http.createServer(async (req, res) => {
     let result = { ok: false, error: 'Acción desconocida' };
 
     switch (body.type) {
+      case 'INICIAR_PRODUCCION': {
+        const now = Date.now();
+        state.session.estado = 'EN_CURSO';
+        state.session.inicioTimestamp = now;
+        state.session.pausaAcumuladaMs = 0;
+        state.session.ultimaPausaTimestamp = null;
+        state.ultimoRegistroPorOperario = {};
+        state.operarios.forEach(op => {
+          op.inicioAreaActualTimestamp = now;
+        });
+        agregarEvento({
+          id: 'EV-START-' + now,
+          timestamp: now,
+          operarioId: 'DOCENTE / CONTROL',
+          operarioNombre: '🚀 Inicio Oficial de Producción',
+          area: 'LAS 4 ÁREAS',
+          tipoAccion: 'INICIO_PRODUCCION',
+          subtipo: 'START',
+          etiqueta: '▶️ ¡PRODUCCIÓN INICIADA! Cronómetro y estudio de tiempos en marcha para los 13 operarios.',
+          cantidad: 1,
+          cicloSeg: null,
+          origen: 'Botón Comenzar Producción',
+          destino: 'Las 4 Estaciones (Enrollado, Pegado, Cortado, Ensamblado)'
+        });
+        saveState();
+        result = { ok: true, mensaje: '🚀 ¡Producción iniciada! Cronómetro en marcha para las 4 estaciones.' };
+        break;
+      }
+      case 'CAMBIAR_AREA_POLIVALENTE': {
+        result = accionCambiarAreaPolivalente(body);
+        break;
+      }
       case 'CREAR_PEDIDO_DOCENTE':
+        if (state.session.estado === 'LISTO_PARA_INICIAR') {
+          state.session.estado = 'EN_CURSO';
+          state.session.inicioTimestamp = Date.now();
+        }
         result = accionCrearPedidoDocente(body);
         break;
       case 'LIMPIAR_PEDIDOS_DOCENTE':
@@ -2166,24 +2469,34 @@ const server = http.createServer(async (req, res) => {
         result = accionDeshacerUltimo();
         break;
       case 'ENROLLADO':
-        guardarSnapshotUndo(`Enrollado +${body.cantidad || 50} tubos`, body.operarioId);
-        result = accionEnrollado(body);
-        break;
       case 'PEGADO':
-        guardarSnapshotUndo(`Pegado ${body.tipoPlaca}`, body.operarioId);
-        result = accionPegado(body);
-        break;
       case 'CORTADO':
-        guardarSnapshotUndo(`Cortado ${body.tipoPlaca || body.placaId}`, body.operarioId);
-        result = accionCortado(body);
-        break;
       case 'CORTADO_KIT_CAJA':
-        guardarSnapshotUndo(`Corte Kit ${body.tipoCaja}`, body.operarioId);
-        result = accionCortadoKitCaja(body);
+      case 'ENSAMBLADO': {
+        if (state.session.estado === 'LISTO_PARA_INICIAR') {
+          result = {
+            ok: false,
+            error: '⏳ Primero debes tocar el botón verde "▶️ COMENZAR PRODUCCIÓN" para arrancar el cronómetro del laboratorio.'
+          };
+          break;
+        }
+        if (body.type === 'ENROLLADO') {
+          guardarSnapshotUndo(`Enrollado +${body.cantidad || 50} tubos`, body.operarioId);
+          result = accionEnrollado(body);
+        } else if (body.type === 'PEGADO') {
+          guardarSnapshotUndo(`Pegado ${body.tipoPlaca}`, body.operarioId);
+          result = accionPegado(body);
+        } else if (body.type === 'CORTADO') {
+          guardarSnapshotUndo(`Cortado ${body.tipoPlaca || body.placaId}`, body.operarioId);
+          result = accionCortado(body);
+        } else if (body.type === 'CORTADO_KIT_CAJA') {
+          guardarSnapshotUndo(`Corte Kit ${body.tipoCaja}`, body.operarioId);
+          result = accionCortadoKitCaja(body);
+        } else if (body.type === 'ENSAMBLADO') {
+          result = accionEnsamblado(body);
+        }
         break;
-      case 'ENSAMBLADO':
-        result = accionEnsamblado(body);
-        break;
+      }
       case 'MERMA':
         guardarSnapshotUndo(`Merma`, body.operarioId);
         result = accionMerma(body);
@@ -2256,6 +2569,11 @@ const server = http.createServer(async (req, res) => {
             state.session.ultimaPausaTimestamp = null;
           }
         } else if (body.accionReloj === 'REINICIAR_RELOJ') {
+          state.session.inicioTimestamp = null;
+          state.session.pausaAcumuladaMs = 0;
+          state.session.ultimaPausaTimestamp = null;
+          state.session.estado = 'LISTO_PARA_INICIAR';
+        } else if (body.accionReloj === 'INICIAR') {
           state.session.inicioTimestamp = Date.now();
           state.session.pausaAcumuladaMs = 0;
           state.session.ultimaPausaTimestamp = null;

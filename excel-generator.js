@@ -621,7 +621,7 @@ function generarLibroXlsxBuffer({ state, metrics, PLACA_SPECS, DEFAULT_AMORTIGUA
     const rStyle = idx % 2 === 0 ? 'CellNormal' : 'CellZebra';
     s4.addRow([
       c(`#${op.numero} (${op.id})`, 'CellBold'),
-      c(op.nombre, 'CellBold'),
+      c(op.esPolivalente ? `${op.nombre} (Polivalente)` : op.nombre, 'CellBold'),
       c(op.areaNombre, 'BadgeBlue'),
       c(op.rol, rStyle),
       c(st.unidadesProducidas || 0, 'CellCenter', 'Number'),
@@ -629,6 +629,41 @@ function generarLibroXlsxBuffer({ state, metrics, PLACA_SPECS, DEFAULT_AMORTIGUA
       c(st.mermas || 0, st.mermas > 0 ? 'BadgeRed' : 'CellCenter', 'Number')
     ], 22);
   });
+
+  s4.addEmptyRow(14);
+  s4.addRow([c('REGISTRO DE TIEMPOS Y CAMBIOS DE ESTACIÓN DE OPERARIOS POLIVALENTES (OP 8 Y OP 9)', 'SectionHeader', 'String', 6)], 24);
+  s4.addRow([
+    c('Operario Polivalente', 'TableHeader'),
+    c('Hora Exacta de Cambio', 'TableHeader'),
+    c('Área Anterior', 'TableHeader'),
+    c('Nueva Área Asignada', 'TableHeader'),
+    c('Tiempo Trabajado en Área Anterior (s)', 'TableHeader'),
+    c('Rutas Habilitadas', 'TableHeader'),
+    c('Estado', 'TableHeader')
+  ], 25);
+
+  const cambiosPolivalencia = [];
+  state.operarios.filter(o => o.esPolivalente).forEach(op => {
+    (op.historialPolivalencia || []).forEach(h => {
+      cambiosPolivalencia.push({ op, h });
+    });
+  });
+
+  if (cambiosPolivalencia.length === 0) {
+    s4.addRow([c('Sin rotaciones de polivalencia registradas durante la corrida.', 'CellCenter', 'String', 6)], 22);
+  } else {
+    cambiosPolivalencia.forEach(({ op, h }) => {
+      s4.addRow([
+        c(`#${op.numero} ${op.nombre} (${op.id})`, 'CellBold'),
+        c(h.horaCambioTexto || new Date(h.cambioTimestamp).toLocaleTimeString('es-BO'), 'CellCenter'),
+        c(h.desdeAreaNombre, 'BadgeAmber'),
+        c(h.haciaAreaNombre, 'BadgeGreen'),
+        c(h.duracionEnAreaAnteriorSeg || 0, 'CellCenter', 'Number'),
+        c((op.areasPolivalentes || []).join(' <-> '), 'CellCenter'),
+        c('ROTACIÓN REGISTRADA', 'BadgeBlue')
+      ], 22);
+    });
+  }
 
   // ==========================================================================
   // HOJA 5: 5_Bitacora_Movimientos
