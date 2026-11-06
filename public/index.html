@@ -206,6 +206,24 @@
           </div>
         </div>
 
+        <!-- DICTADO DE PEDIDOS POR VOZ -->
+        <div style="background:rgba(56,189,248,0.08); border:1px dashed #38bdf8; border-radius:12px; padding:12px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <div style="font-size:13px; font-weight:900; color:#38bdf8;">🎙️ ANOTAR PEDIDO POR VOZ</div>
+            <span id="vozEstado" class="badge-pill" style="font-size:11px;">Listo para escuchar</span>
+          </div>
+          <button id="btnDictarPedido" class="giant-btn btn-blue" style="margin-bottom:8px; min-height:58px;" onclick="toggleDictadoPedido()">
+            <span>🎙️ TOCA Y DICTA EL PEDIDO</span>
+            <span class="giant-btn-sub">Ej: "3 cajitas estándar, 2 plus, 1 nuevo estándar y 2 nuevos plus"</span>
+          </button>
+          <textarea id="vozTranscripcion" class="input-field" rows="2" placeholder="Aquí aparece lo que dictaste. También puedes escribirlo o usar el micrófono del teclado del celular." style="width:100%; font-size:14px; resize:vertical;"></textarea>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+            <button class="btn-secondary" onclick="interpretarTextoPedido()">🧠 Interpretar texto</button>
+            <button class="btn-secondary" style="border-color:#64748b; color:#cbd5e1;" onclick="limpiarDictadoPedido()">🧹 Limpiar</button>
+          </div>
+          <div id="vozResultado" style="font-size:12px; margin-top:8px; color:#cbd5e1;"></div>
+        </div>
+
         <!-- Controles de cantidad para los 4 Productos -->
         <div class="passport-grid" style="margin-bottom:12px;">
           <!-- Producto 1: Cajita Estándar -->
@@ -605,6 +623,51 @@
           </button>
           <button class="btn-secondary" style="background:#e11d48; border-color:#fda4af; padding:10px 14px;" onclick="reiniciarSinAmortiguadores()">
             🗑️ Reiniciar en CERO (Sin Amortiguadores)
+          </button>
+        </div>
+      </div>
+
+      <!-- BASE DE DATOS SUPABASE: ESTADO DE CONEXIÓN E HISTORIAL DE SESIONES ANTERIORES -->
+      <div class="card" style="border:2px solid #3ecf8e;">
+        <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+          <div>
+            <div class="card-title" style="color:#3ecf8e;">🗄️ Base de Datos (Supabase) e Historial de Prácticas</div>
+            <div class="card-subtitle">Todo lo registrado se guarda en la nube. Aunque el servidor se reinicie, la línea se recupera y el historial nunca se pierde.</div>
+          </div>
+          <span id="dbStatusBadge" class="badge-pill" style="font-weight:900;">⏳ Verificando...</span>
+        </div>
+        <div id="dbStatusDetail" style="font-size:12px; color:#cbd5e1; margin-bottom:10px;"></div>
+        <button class="btn-secondary" style="background:#065f46; border-color:#3ecf8e; padding:10px 14px;" onclick="cargarHistorialSesiones()">
+          📚 Ver Prácticas Anteriores Guardadas
+        </button>
+        <div id="dbHistorialList" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- CONFIGURACIÓN DE ALERTAS SONORAS POR TIEMPO (EJ: 15, 30, 45 MINUTOS) -->
+      <div class="card" style="border:2px solid #f59e0b;">
+        <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+          <div>
+            <div class="card-title" style="color:#fbbf24;">🔔 Alertas Sonoras Automáticas de Tiempo (Sin Carteles en Pantalla)</div>
+            <div class="card-subtitle">
+              Emite <strong>únicamente una señal sonora</strong> (sin mostrar ventanas ni mensajes emergentes en la pantalla) cuando el cronómetro alcanza los minutos configurados (por defecto: <strong>15, 30 y 45 min</strong>).
+            </div>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:800; color:#34d399;">
+            <input type="checkbox" id="chkAlertasSonoras" checked onchange="guardarConfigAlertasSonoras()" style="width:18px; height:18px;" />
+            <span>Activar Sonido</span>
+          </label>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+          <div style="flex:1; min-width:220px;">
+            <label style="font-size:11px; color:var(--text-muted); font-weight:700;">Minutos en los que sonará la alerta (separados por coma):</label>
+            <input type="text" id="inputMinutosAlertasSonoras" class="input-field" value="15, 30, 45" placeholder="Ej: 15, 30, 45" style="margin-top:4px; font-size:15px; font-weight:800; color:#fbbf24;" />
+          </div>
+          <button class="btn-secondary" style="background:#d97706; border-color:#fbbf24; color:#000; font-weight:900; padding:11px 16px; margin-top:16px;" onclick="guardarConfigAlertasSonoras()">
+            💾 Guardar Minutos de Alerta
+          </button>
+          <button class="btn-secondary" style="background:#334155; border-color:#64748b; padding:11px 14px; margin-top:16px;" onclick="reproducirAlarmaTiempoSilenciosa()">
+            🔊 Probar Sonido Ahora
           </button>
         </div>
       </div>

@@ -14,6 +14,8 @@ let polivalentePickerOpen = false;
 let deferredInstallPrompt = null;
 let eventSource = null;
 let ultimaAlertaMostradaId = localStorage.getItem('metodos_ultima_alerta_id') || null;
+let minutosAlertadosEnSesion = new Set();
+let ultimoInicioMsConocido = null;
 
 function getApiBase() {
   const custom = localStorage.getItem('metodos_server_url');
@@ -75,6 +77,101 @@ function sonarAlertaPedidoDocente() {
   } catch (e) {}
 }
 
+// Alarma EXCLUSIVAMENTE SONORA (sin popups ni avisos en pantalla) para los hitos de tiempo (ej. 15, 30, 45 min)
+function reproducirAlarmaTiempoSilenciosa() {
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate([300, 120, 300, 120, 500]);
+    }
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      // Secuencia armónica de campana de laboratorio (4 tonos claros y audibles)
+      const secuencia = [
+        { freq: 659.25, delay: 0.0, dur: 0.25 },
+        { freq: 783.99, delay: 0.28, dur: 0.25 },
+        { freq: 987.77, delay: 0.56, dur: 0.25 },
+        { freq: 1318.51, delay: 0.84, dur: 0.55 }
+      ];
+      secuencia.forEach(nota => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const start = ctx.currentTime + nota.delay;
+        osc.frequency.setValueAtTime(nota.freq, start);
+        gain.gain.setValueAtTime(0.30, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + nota.dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + nota.dur + 0.02);
+      });
+    }
+  } catch (e) {}
+}
+
+// Base del reloj sincronizada con el servidor (evita desfases si la hora del celular está mal configurada)
+let relojBaseSeg = 0;
+let relojBaseLocalMs = Date.now();
+
+function sincronizarRelojLocal(data) {
+  relojBaseSeg = Number(data?.metrics?.tiempoEfectivoSeg) || 0;
+  relojBaseLocalMs = Date.now();
+}
+
+function calcularSegundosEfectivosLocal() {
+  if (!appData || !appData.state || !appData.state.session) return 0;
+  const s = appData.state.session;
+  if (s.estado === 'LISTO_PARA_INICIAR') return 0;
+  if (s.estado !== 'EN_CURSO') return Math.floor(relojBaseSeg);
+  return Math.max(0, Math.floor(relojBaseSeg + (Date.now() - relojBaseLocalMs) / 1000));
+}
+
+function verificarAlertasSonorasDeTiempo(segundosEfectivos) {
+  if (!appData || !appData.state || !appData.state.session) return;
+  const s = appData.state.session;
+
+  // Si se reinició la sesión o está esperando inicio, limpiar el registro de minutos ya sonados
+  if (s.estado === 'LISTO_PARA_INICIAR' || segundosEfectivos < 5 || ultimoInicioMsConocido !== s.inicioTimestamp) {
+    minutosAlertadosEnSesion.clear();
+    ultimoInicioMsConocido = s.inicioTimestamp;
+    if (s.estado === 'LISTO_PARA_INICIAR') return;
+  }
+
+  if (s.estado !== 'EN_CURSO') return;
+  const cfg = s.alertasSonorasConfig || { habilitado: true, minutosAlertas: [15, 30, 45] };
+  if (!cfg.habilitado) return;
+
+  const listaMinutos = Array.isArray(cfg.minutosAlertas) ? cfg.minutosAlertas : [15, 30, 45];
+  for (const minMeta of listaMinutos) {
+    const segMeta = Math.round(Number(minMeta) * 60);
+    if (segMeta > 0 && segundosEfectivos >= segMeta && segundosEfectivos <= segMeta + 15) {
+      if (!minutosAlertadosEnSesion.has(minMeta)) {
+        minutosAlertadosEnSesion.add(minMeta);
+        // Solo sonido, sin mostrar nada en pantalla
+        reproducirAlarmaTiempoSilenciosa();
+      }
+    } else if (segundosEfectivos > segMeta + 15) {
+      // Marcar como ya pasado para que no suene con retraso si alguien abre la página después
+      minutosAlertadosEnSesion.add(minMeta);
+    }
+  }
+}
+
+// Reloj local cada 1 segundo para actualizar el cronómetro en vivo y disparar las alertas sonoras exactas
+setInterval(() => {
+  if (!appData || !appData.state || !appData.state.session) return;
+  const s = appData.state.session;
+  if (s.estado === 'EN_CURSO') {
+    const seg = calcularSegundosEfectivosLocal();
+    const clockEl = document.getElementById('clockBadge');
+    if (clockEl) {
+      clockEl.textContent = '⏱️ ' + formatSecondsMMSS(seg);
+    }
+    verificarAlertasSonorasDeTiempo(seg);
+  }
+}, 1000);
+
 async function activarWakeLock() {
   try {
     if ('wakeLock' in navigator) {
@@ -111,6 +208,7 @@ function connectRealtime() {
     try {
       const data = JSON.parse(event.data);
       appData = data;
+      sincronizarRelojLocal(data);
       verificarNuevaAlertaDocente(data.state?.ultimaAlertaPedido);
       renderAll();
       const dot = document.getElementById('connDot');
@@ -187,6 +285,7 @@ async function sendAction(payload) {
     }
     if (data.payload) {
       appData = data.payload;
+      sincronizarRelojLocal(appData);
       verificarNuevaAlertaDocente(appData.state?.ultimaAlertaPedido);
       renderAll();
     }
@@ -289,6 +388,7 @@ function renderAll() {
     renderThroughputTab();
   } else if (currentTab === 'config') {
     renderConfigTab();
+    renderEstadoBaseDatos();
   }
 }
 
@@ -303,10 +403,12 @@ function renderHeaderKPIs() {
 
   const isWaiting = state.session.estado === 'LISTO_PARA_INICIAR';
   const isPaused = state.session.estado === 'PAUSADO';
+  const segEfectivos = isWaiting ? 0 : (state.session.estado === 'EN_CURSO' ? calcularSegundosEfectivosLocal() : metrics.tiempoEfectivoSeg);
   const estadoTexto = isWaiting
     ? '⏳ ESPERANDO INICIO'
-    : (isPaused ? '⏸️ PAUSADO' : '⏱️ ' + formatSecondsMMSS(metrics.tiempoEfectivoSeg));
+    : (isPaused ? '⏸️ PAUSADO' : '⏱️ ' + formatSecondsMMSS(segEfectivos));
   document.getElementById('clockBadge').textContent = estadoTexto;
+  verificarAlertasSonorasDeTiempo(segEfectivos);
 
   const btnHdrStart = document.getElementById('btnHeaderIniciarProd');
   if (btnHdrStart) {
@@ -622,13 +724,258 @@ function lanzarPedidoDocente() {
     showToast('Ingresa al menos 1 unidad de alguno de los 4 productos para lanzar el pedido', true);
     return;
   }
+  const notaVozEl = document.getElementById('vozTranscripcion');
+  const notaVoz = notaVozEl ? notaVozEl.value.trim() : '';
   sendAction({
     type: 'CREAR_PEDIDO_DOCENTE',
     cajasEstandar: est,
     cajasPlus: plus,
     nuevoEstandar: nuevoEst,
-    nuevoPlus: nuevoPlus
+    nuevoPlus: nuevoPlus,
+    notaVoz: notaVoz || undefined
+  }).then(r => {
+    if (r && r.ok) limpiarDictadoPedido();
   });
+}
+
+// ============================================================================
+// DICTADO DE PEDIDOS POR VOZ (Web Speech API + intérprete de texto en español)
+// ============================================================================
+
+let reconocimientoVoz = null;
+let dictandoPedido = false;
+
+const NUMEROS_EN_PALABRAS = {
+  un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8,
+  nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15,
+  dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20,
+  veinticinco: 25, treinta: 30, cuarenta: 40, cincuenta: 50
+};
+
+function normalizarTextoVoz(t) {
+  return String(t || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.,;:!¡?¿]/g, ' ')
+    .replace(/\bplush?\b|\bplos\b|\bpluss\b/g, 'plus')
+    .replace(/\bstandard\b|\bestandares\b|\bestandard\b/g, 'estandar')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Convierte frases como "3 cajitas estándar, 2 plus y 1 nuevo producto plus" en cantidades
+function interpretarPedidoDesdeTexto(texto) {
+  const t = normalizarTextoVoz(texto);
+  const resultado = { ESTANDAR: null, PLUS: null, NUEVO_ESTANDAR: null, NUEVO_PLUS: null };
+  const palabrasNum = Object.keys(NUMEROS_EN_PALABRAS).sort((a, b) => b.length - a.length).join('|');
+  const aNumero = (v) => (/^\d+$/.test(v) ? parseInt(v, 10) : (NUMEROS_EN_PALABRAS[v] || 0));
+
+  // "3 de cada uno" / "2 de cada producto" -> mismo número para los 4 productos
+  const reCada = new RegExp(`\\b(\\d+|${palabrasNum})\\s+de\\s+cada\\b`);
+  const mCada = t.match(reCada);
+  if (mCada) {
+    const n = aNumero(mCada[1]);
+    resultado.ESTANDAR = n; resultado.PLUS = n; resultado.NUEVO_ESTANDAR = n; resultado.NUEVO_PLUS = n;
+  }
+
+  const re = new RegExp(
+    `\\b(\\d+|${palabrasNum})\\s+(?:de\\s+)?(?:la\\s+|el\\s+|los\\s+|las\\s+)?((?:(?:productos?|nuevos?|nuevas?|cajitas?|cajas?|del?|tipo)\\s+)*)(estandar|plus)\\b`,
+    'g'
+  );
+  let m;
+  let encontrados = 0;
+  while ((m = re.exec(t)) !== null) {
+    const cant = aNumero(m[1]);
+    const esNuevo = /nuev/.test(m[2] || '');
+    const tipo = m[3] === 'plus'
+      ? (esNuevo ? 'NUEVO_PLUS' : 'PLUS')
+      : (esNuevo ? 'NUEVO_ESTANDAR' : 'ESTANDAR');
+    resultado[tipo] = cant;
+    encontrados++;
+  }
+
+  return { cantidades: resultado, encontrados: encontrados + (mCada ? 1 : 0), textoNormalizado: t };
+}
+
+function interpretarTextoPedido() {
+  const inp = document.getElementById('vozTranscripcion');
+  const out = document.getElementById('vozResultado');
+  if (!inp || !out) return;
+  const { cantidades, encontrados } = interpretarPedidoDesdeTexto(inp.value);
+
+  if (encontrados === 0) {
+    out.innerHTML = `<span style="color:#f87171; font-weight:700;">⚠️ No entendí ninguna cantidad. Prueba diciendo: "3 cajitas estándar y 2 plus" o "2 de cada uno".</span>`;
+    feedbackTactil(false);
+    return;
+  }
+
+  // Los productos no mencionados quedan en 0
+  const est = cantidades.ESTANDAR ?? 0;
+  const plus = cantidades.PLUS ?? 0;
+  const nEst = cantidades.NUEVO_ESTANDAR ?? 0;
+  const nPlus = cantidades.NUEVO_PLUS ?? 0;
+  setPedidoRapidoDocente(est, plus, nEst, nPlus);
+  feedbackTactil(true);
+
+  out.innerHTML = `
+    <div style="color:#34d399; font-weight:800; margin-bottom:4px;">✅ Pedido entendido (revisa y pulsa "LANZAR PEDIDO"):</div>
+    <span class="badge-pill" style="border-color:#10b981;">📦 Cajita Est.: <strong>${est}</strong></span>
+    <span class="badge-pill" style="border-color:#ec4899;">✨ Cajita Plus: <strong>${plus}</strong></span>
+    <span class="badge-pill" style="border-color:#3b82f6;">🔷 Nuevo Est.: <strong>${nEst}</strong></span>
+    <span class="badge-pill" style="border-color:#a855f7;">💎 Nuevo Plus: <strong>${nPlus}</strong></span>
+  `;
+}
+
+function limpiarDictadoPedido() {
+  const inp = document.getElementById('vozTranscripcion');
+  const out = document.getElementById('vozResultado');
+  if (inp) inp.value = '';
+  if (out) out.innerHTML = '';
+}
+
+function actualizarEstadoVoz(texto, color) {
+  const el = document.getElementById('vozEstado');
+  if (el) {
+    el.textContent = texto;
+    el.style.borderColor = color || '';
+    el.style.color = color || '';
+  }
+}
+
+function toggleDictadoPedido() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    actualizarEstadoVoz('No compatible', '#f87171');
+    showToast('Este navegador no permite dictado directo. Usa Google Chrome, o toca el cuadro de texto y usa el 🎤 del teclado.', true);
+    document.getElementById('vozTranscripcion')?.focus();
+    return;
+  }
+
+  if (dictandoPedido && reconocimientoVoz) {
+    reconocimientoVoz.stop();
+    return;
+  }
+
+  reconocimientoVoz = new SR();
+  reconocimientoVoz.lang = 'es-ES';
+  reconocimientoVoz.interimResults = true;
+  reconocimientoVoz.continuous = false;
+  reconocimientoVoz.maxAlternatives = 1;
+
+  const inp = document.getElementById('vozTranscripcion');
+  const btn = document.getElementById('btnDictarPedido');
+  let textoFinal = '';
+
+  reconocimientoVoz.onstart = () => {
+    dictandoPedido = true;
+    actualizarEstadoVoz('🔴 Escuchando...', '#f87171');
+    if (btn) btn.firstElementChild.textContent = '⏹️ ESCUCHANDO... TOCA PARA TERMINAR';
+    feedbackTactil(true);
+  };
+
+  reconocimientoVoz.onresult = (ev) => {
+    let parcial = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      if (r.isFinal) textoFinal += r[0].transcript + ' ';
+      else parcial += r[0].transcript;
+    }
+    if (inp) inp.value = (textoFinal + parcial).trim();
+  };
+
+  reconocimientoVoz.onerror = (ev) => {
+    const mensajes = {
+      'not-allowed': 'Permiso de micrófono denegado. Actívalo en la configuración del navegador.',
+      'service-not-allowed': 'El navegador bloqueó el dictado (requiere HTTPS o Chrome).',
+      'no-speech': 'No se escuchó nada. Intenta de nuevo hablando más cerca.',
+      'network': 'El dictado necesita conexión a internet.',
+      'audio-capture': 'No se detectó micrófono.'
+    };
+    showToast(mensajes[ev.error] || `Error de dictado: ${ev.error}`, true);
+    actualizarEstadoVoz('Error', '#f87171');
+  };
+
+  reconocimientoVoz.onend = () => {
+    dictandoPedido = false;
+    if (btn) btn.firstElementChild.textContent = '🎙️ TOCA Y DICTA EL PEDIDO';
+    if (inp && inp.value.trim()) {
+      actualizarEstadoVoz('✅ Dictado listo', '#34d399');
+      interpretarTextoPedido();
+    } else {
+      actualizarEstadoVoz('Listo para escuchar', '');
+    }
+  };
+
+  try {
+    reconocimientoVoz.start();
+  } catch (e) {
+    showToast('No se pudo iniciar el micrófono: ' + e.message, true);
+  }
+}
+
+// ============================================================================
+// BASE DE DATOS (SUPABASE): ESTADO E HISTORIAL DE PRÁCTICAS ANTERIORES
+// ============================================================================
+
+function renderEstadoBaseDatos() {
+  const badge = document.getElementById('dbStatusBadge');
+  const detail = document.getElementById('dbStatusDetail');
+  if (!badge || !appData) return;
+  const db = appData.serverInfo?.baseDatos;
+
+  if (!db || !db.habilitado) {
+    badge.textContent = '⚪ NO CONFIGURADA';
+    badge.style.background = '#475569';
+    if (detail) detail.innerHTML = 'Sin base de datos: el historial solo vive en el archivo del servidor. En Render se pierde al reiniciar. Configura <strong>SUPABASE_URL</strong> y <strong>SUPABASE_SERVICE_KEY</strong>.';
+    return;
+  }
+  if (db.ultimoError) {
+    badge.textContent = '🔴 ERROR DE CONEXIÓN';
+    badge.style.background = '#b91c1c';
+    if (detail) detail.innerHTML = `Reintentando automáticamente... <span style="color:#fca5a5;">${db.ultimoError}</span>`;
+    return;
+  }
+  badge.textContent = '🟢 CONECTADA Y GUARDANDO';
+  badge.style.background = '#059669';
+  const hora = db.ultimoGuardadoOk ? new Date(db.ultimoGuardadoOk).toLocaleTimeString() : 'pendiente';
+  if (detail) detail.innerHTML = `Sesión actual: <strong style="color:#3ecf8e;">${db.sesionClave}</strong> • Último guardado: <strong>${hora}</strong> • Guardados: ${db.guardadosExitosos}`;
+}
+
+async function cargarHistorialSesiones() {
+  const list = document.getElementById('dbHistorialList');
+  if (!list) return;
+  list.innerHTML = '<div style="color:#94a3b8; font-size:12px;">⏳ Cargando prácticas guardadas...</div>';
+  try {
+    const r = await fetch(`${getApiBase()}/api/historial-sesiones`).then(x => x.json());
+    if (!r.ok) throw new Error(r.error || 'Error');
+    if (!r.habilitado) {
+      list.innerHTML = '<div style="color:#fbbf24; font-size:12px;">La base de datos no está configurada todavía.</div>';
+      return;
+    }
+    if (!r.sesiones.length) {
+      list.innerHTML = '<div style="color:#94a3b8; font-size:12px;">Aún no hay prácticas guardadas.</div>';
+      return;
+    }
+    list.innerHTML = r.sesiones.map(s => {
+      const tp = s.terminados_por_producto || {};
+      const fecha = s.inicio_produccion || s.creada_en || s.updated_at;
+      const esActual = s.sesion_clave === r.sesionActual;
+      return `
+        <div class="passport-block" style="margin-bottom:6px; ${esActual ? 'border-color:#3ecf8e;' : ''}">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <div>
+              <strong style="color:#3ecf8e;">${s.sesion_clave}</strong> ${esActual ? '<span class="badge-pill" style="background:#059669;">ACTUAL</span>' : ''}
+              <div style="font-size:11px; color:#94a3b8;">${fecha ? new Date(fecha).toLocaleString() : ''} • ${s.estado || ''}</div>
+              <div style="font-size:12px; margin-top:2px;">✅ ${s.total_terminados || 0} terminados (E:${tp.ESTANDAR || 0} P:${tp.PLUS || 0} NE:${tp.NUEVO_ESTANDAR || 0} NP:${tp.NUEVO_PLUS || 0})</div>
+            </div>
+            <a class="btn-secondary" style="text-decoration:none;" href="${getApiBase()}/api/export-excel?sesion=${encodeURIComponent(s.sesion_clave)}">📥 Excel</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = `<div style="color:#f87171; font-size:12px;">Error cargando historial: ${err.message}</div>`;
+  }
 }
 
 function renderDocenteTab() {
@@ -1595,6 +1942,13 @@ function renderConfigTab() {
     chkFlex.checked = !!state.session.modoInventarioFlexible;
   }
 
+  const cfgSonora = state.session.alertasSonorasConfig || { habilitado: true, minutosAlertas: [15, 30, 45] };
+  const chkSonora = document.getElementById('chkAlertasSonoras');
+  if (chkSonora) {
+    chkSonora.checked = cfgSonora.habilitado !== false;
+  }
+  setValIfNotFocused('inputMinutosAlertasSonoras', (cfgSonora.minutosAlertas || [15, 30, 45]).join(', '));
+
   setValIfNotFocused('inputCustomServerUrl', localStorage.getItem('metodos_server_url') || '');
 
   const opsList = document.getElementById('operatorsConfigList');
@@ -1668,6 +2022,16 @@ function guardarConfigSesion() {
     type: 'CONFIG_SESION',
     loteDestinoActual: inputLote ? inputLote.value : undefined,
     modoInventarioFlexible: chkFlex ? chkFlex.checked : undefined
+  });
+}
+
+function guardarConfigAlertasSonoras() {
+  const chk = document.getElementById('chkAlertasSonoras');
+  const inp = document.getElementById('inputMinutosAlertasSonoras');
+  sendAction({
+    type: 'CONFIG_ALERTAS_SONORAS',
+    habilitado: chk ? chk.checked : true,
+    minutosTexto: inp ? inp.value : '15, 30, 45'
   });
 }
 
@@ -1757,6 +2121,7 @@ fetch(`${getApiBase()}/api/state`)
   .then(r => r.json())
   .then(data => {
     appData = data;
+    sincronizarRelojLocal(data);
     renderAll();
   })
   .catch(() => {});

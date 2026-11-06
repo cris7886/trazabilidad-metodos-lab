@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
 const { generarLibroXlsxBuffer } = require('./excel-generator');
+const supabaseStore = require('./supabase-store');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
@@ -638,6 +639,7 @@ function createInitialState(preserveOperators = null, customBuffers = null) {
     session: {
       id: 'SIM-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       nombre: 'Simulación Semanal - Lab. Ingeniería de Métodos (4 Áreas / 4 Productos)',
+      creadaTimestamp: now,
       loteDestinoActual: 'Almacén Producto Terminado (Stock General)',
       estado: 'LISTO_PARA_INICIAR', // Espera a que se pulse el botón "▶️ COMENZAR PRODUCCIÓN"
       inicioTimestamp: null,
@@ -647,6 +649,10 @@ function createInitialState(preserveOperators = null, customBuffers = null) {
       taktConfig: {
         demandaMetaUnidades: 6,
         tiempoDisponibleMin: 15
+      },
+      alertasSonorasConfig: {
+        habilitado: true,
+        minutosAlertas: [15, 30, 45]
       }
     },
     amortiguadoresConfig: buffers,
@@ -873,6 +879,38 @@ function saveState() {
   } catch (err) {
     console.error('Error guardando estado:', err.message);
   }
+  // Copia permanente en la base de datos Supabase (si está configurada).
+  // No se guarda nada hasta haber leído primero el estado remoto, para no sobrescribirlo con uno vacío.
+  if (supabaseInicializado) {
+    supabaseStore.programarGuardado(state);
+  }
+}
+
+let supabaseInicializado = false;
+
+// Al arrancar: recuperar desde Supabase la última foto de la línea (sobrevive a reinicios de Render)
+async function inicializarPersistenciaSupabase() {
+  if (!supabaseStore.habilitado) {
+    console.log('ℹ️ Supabase NO configurado: se usa solo el archivo local data/lab-state.json');
+    return;
+  }
+  const remoto = await supabaseStore.cargarEstadoActual();
+  if (remoto && remoto.version === '2.3.0') {
+    state = remoto;
+    if (!state.session.creadaTimestamp) state.session.creadaTimestamp = Date.now();
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    } catch (e) {}
+    console.log(`✅ Estado recuperado desde Supabase (sesión ${supabaseStore.obtenerClaveSesion(state)})`);
+  } else if (remoto) {
+    console.log('ℹ️ Estado en Supabase con versión distinta: se inicia una sesión nueva conservando el historial anterior.');
+  } else if (supabaseStore.estadoConexion.ultimoError) {
+    console.log('⚠️ Supabase no respondió; se continúa con el estado local y se reintentará al guardar.');
+  } else {
+    console.log('ℹ️ Supabase conectado: aún no hay estado guardado, se crea uno nuevo.');
+  }
+  supabaseInicializado = true;
+  supabaseStore.programarGuardado(state);
 }
 
 loadState();
@@ -1035,6 +1073,7 @@ function accionCrearPedidoDocente(payload = {}) {
       ? `${codigoPedido}: ${payload.notaDocente}`
       : `${codigoPedido} (${explosion.resumenProductosTexto})`,
     timestampCreacion: now,
+    notaVoz: payload.notaVoz ? String(payload.notaVoz).slice(0, 500) : null,
     timestampCompletado: null,
     tiempoCumplimientoSeg: null,
     estado: 'EN_PROCESO',
@@ -2327,7 +2366,15 @@ function getFullPayload() {
       ips: getLocalIPs(),
       port: PORT,
       connectedDevices: sseClients.size,
-      publicTunnel: publicTunnelInfo
+      publicTunnel: publicTunnelInfo,
+      baseDatos: {
+        habilitado: supabaseStore.habilitado,
+        inicializado: supabaseInicializado,
+        sesionClave: supabaseStore.obtenerClaveSesion(state),
+        ultimoGuardadoOk: supabaseStore.estadoConexion.ultimoGuardadoOk,
+        ultimoError: supabaseStore.estadoConexion.ultimoError,
+        guardadosExitosos: supabaseStore.estadoConexion.guardadosExitosos
+      }
     }
   };
 }
@@ -2412,6 +2459,18 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/state' && req.method === 'GET') {
     return sendJson(res, 200, getFullPayload());
+  }
+
+  if (pathname === '/api/historial-sesiones' && req.method === 'GET') {
+    if (!supabaseStore.habilitado) {
+      return sendJson(res, 200, { ok: true, habilitado: false, sesiones: [] });
+    }
+    try {
+      const sesiones = await supabaseStore.listarSesiones();
+      return sendJson(res, 200, { ok: true, habilitado: true, sesionActual: supabaseStore.obtenerClaveSesion(state), sesiones: sesiones || [] });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
   }
 
   if (pathname === '/api/action' && req.method === 'POST') {
@@ -2504,6 +2563,38 @@ const server = http.createServer(async (req, res) => {
       case 'SIMULAR_LOTE':
         result = ejecutarPasoSimulacionDemo();
         break;
+      case 'CONFIG_ALERTAS_SONORAS': {
+        if (!state.session.alertasSonorasConfig) {
+          state.session.alertasSonorasConfig = { habilitado: true, minutosAlertas: [15, 30, 45] };
+        }
+        if (typeof body.habilitado === 'boolean') {
+          state.session.alertasSonorasConfig.habilitado = body.habilitado;
+        }
+        if (typeof body.minutosTexto === 'string') {
+          const parsedMins = body.minutosTexto
+            .split(/[,;\s]+/)
+            .map(v => Number(v.trim()))
+            .filter(n => !isNaN(n) && n > 0 && n <= 600)
+            .sort((a, b) => a - b);
+          if (parsedMins.length > 0) {
+            state.session.alertasSonorasConfig.minutosAlertas = Array.from(new Set(parsedMins));
+          }
+        } else if (Array.isArray(body.minutosAlertas)) {
+          const parsedMins = body.minutosAlertas
+            .map(v => Number(v))
+            .filter(n => !isNaN(n) && n > 0 && n <= 600)
+            .sort((a, b) => a - b);
+          if (parsedMins.length > 0) {
+            state.session.alertasSonorasConfig.minutosAlertas = Array.from(new Set(parsedMins));
+          }
+        }
+        saveState();
+        result = {
+          ok: true,
+          mensaje: `🔔 Alertas sonoras configuradas para los minutos: ${state.session.alertasSonorasConfig.minutosAlertas.join(', ')}`
+        };
+        break;
+      }
       case 'CONFIG_TAKT': {
         if (!state.session.taktConfig) {
           state.session.taktConfig = { demandaMetaUnidades: 6, tiempoDisponibleMin: 15 };
@@ -2612,14 +2703,38 @@ const server = http.createServer(async (req, res) => {
   }
 
   if ((pathname === '/api/export-csv' || pathname === '/api/export-excel') && req.method === 'GET') {
+    // Permite descargar el Excel de una sesión ANTERIOR guardada en Supabase: /api/export-excel?sesion=SIM-...
+    let stateExport = state;
+    let metricsExport = null;
+    const sesionPedida = urlObj.searchParams.get('sesion');
+    if (sesionPedida && sesionPedida !== supabaseStore.obtenerClaveSesion(state)) {
+      try {
+        const st = await supabaseStore.obtenerSesion(sesionPedida);
+        if (!st) {
+          return sendJson(res, 404, { ok: false, error: 'Sesión no encontrada en la base de datos' });
+        }
+        const eventosCompletos = await supabaseStore.obtenerEventosSesion(sesionPedida);
+        if (eventosCompletos.length > 0) st.eventos = eventosCompletos;
+        const stateOriginal = state;
+        state = st;
+        try {
+          metricsExport = computeEngineeringMetrics();
+        } finally {
+          state = stateOriginal;
+        }
+        stateExport = st;
+      } catch (err) {
+        return sendJson(res, 500, { ok: false, error: 'Error leyendo la sesión: ' + err.message });
+      }
+    }
     const xlsxBuf = generarLibroXlsxBuffer({
-      state,
-      metrics: computeEngineeringMetrics(),
+      state: stateExport,
+      metrics: metricsExport || computeEngineeringMetrics(),
       PLACA_SPECS,
       BOM_CAJAS,
       DEFAULT_AMORTIGUADORES
     });
-    const fechaStr = new Date().toISOString().slice(0, 10);
+    const fechaStr = sesionPedida || new Date().toISOString().slice(0, 10);
     res.writeHead(200, {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Length': xlsxBuf.length,
@@ -2651,6 +2766,21 @@ setInterval(() => {
   }
 }, 3000);
 
+// Guardar en Supabase antes de que Render apague el servidor (redeploy / reinicio)
+async function apagadoSeguro(senal) {
+  console.log(`🛑 Señal ${senal} recibida: guardando estado final en la base de datos...`);
+  try {
+    saveState();
+    if (supabaseInicializado) {
+      await supabaseStore.guardarInmediato(state);
+    }
+  } catch (e) {}
+  process.exit(0);
+}
+process.on('SIGTERM', () => apagadoSeguro('SIGTERM'));
+process.on('SIGINT', () => apagadoSeguro('SIGINT'));
+
+inicializarPersistenciaSupabase().finally(() => {
 server.listen(PORT, '0.0.0.0', () => {
   const ips = getLocalIPs();
   console.log('======================================================================');
@@ -2663,4 +2793,5 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('🌐 Iniciando Túnel Público Multi-Red (Datos Móviles 4G/5G / Distintas Redes)...');
   console.log('======================================================================');
   iniciarTunelPublicoMultiRed();
+});
 });
